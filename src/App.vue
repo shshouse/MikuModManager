@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import ContentPanel from './components/ContentPanel.vue'
 
-const activeTab = ref('home')
+const activeTab = ref('mods')
 
 function handleTabChange(tab: string) {
   activeTab.value = tab

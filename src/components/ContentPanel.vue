@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import HomePanel from './panels/HomePanel.vue'
 import ModsPanel from './panels/ModsPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
 import SettingsPanel from './panels/SettingsPanel.vue'
@@ -11,7 +10,6 @@ const props = defineProps<{
 
 function getTitle(): string {
   const titles: Record<string, string> = {
-    home: '欢迎使用 Miku Mods Manager',
     mods: '游戏管理',
     download: '下载中心',
     settings: '应用设置',
@@ -28,8 +26,7 @@ function getTitle(): string {
     </div>
     
     <div class="content-body">
-      <HomePanel v-if="activeTab === 'home'" />
-      <ModsPanel v-else-if="activeTab === 'mods'" />
+      <ModsPanel v-if="activeTab === 'mods'" />
       <DownloadPanel v-else-if="activeTab === 'download'" />
       <SettingsPanel v-else-if="activeTab === 'settings'" />
       <AboutPanel v-else-if="activeTab === 'about'" />
