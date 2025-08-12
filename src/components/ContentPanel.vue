@@ -11,7 +11,7 @@ const props = defineProps<{
 function getTitle(): string {
   const titles: Record<string, string> = {
     mods: '游戏管理',
-    download: '下载中心',
+    download: '下载(百度网盘/夸克网盘)',
     settings: '应用设置',
     about: '关于我们'
   }
