@@ -40,8 +40,8 @@ function validateName() {
   const name = newGame.value.name.trim()
   if (!name) {
     errors.value.name = '游戏名称不能为空'
-  } else if (name.length < 2) {
-    errors.value.name = '游戏名称至少需要2个字符'
+  } else if (name.length < 1) {
+    errors.value.name = '游戏名称至少需要1个字符'
   } else if (games.value.some(g => g.name.toLowerCase() === name.toLowerCase())) {
     errors.value.name = '游戏名称已存在'
   } else {
