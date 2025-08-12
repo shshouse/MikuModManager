@@ -12,13 +12,27 @@
   "app": {
     "windows": [
       {
-        "title": "mikumodsmanager",
-        "width": 800,
-        "height": 600
+        "title": "Miku Mods Manager",
+        "width": 900,
+        "height": 650,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true
       }
     ],
     "security": {
       "csp": null
+    }
+  },
+  "plugins": {
+    "dialog": {
+      "all": true,
+      "ask": true,
+      "confirm": true,
+      "message": true,
+      "open": true,
+      "save": true
     }
   },
   "bundle": {
