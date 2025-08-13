@@ -200,7 +200,7 @@ loadGames()
       <div class="dialog">
         <div class="dialog-header">
           <h3>添加自定义游戏</h3>
-          <button class="close-btn" @click="cancelAdd">✕</button>
+          <button class="close-btn" @click="cancelAdd">×</button>
         </div>
         
         <div class="dialog-body">
@@ -230,7 +230,7 @@ loadGames()
                 :class="{ error: errors.directory }"
               >
               <button @click="selectDirectory" class="btn-browse">
-                📁 浏览
+                浏览
               </button>
             </div>
             <div v-if="errors.directory" class="error-message">{{ errors.directory }}</div>
@@ -245,7 +245,7 @@ loadGames()
             :disabled="!isFormValid || isLoading"
           >
             <span v-if="isLoading">添加中...</span>
-            <span v-else>✓ 添加游戏</span>
+            <span v-else>添加游戏</span>
           </button>
           <button @click="cancelAdd" class="btn-secondary">取消</button>
         </div>
@@ -262,13 +262,13 @@ loadGames()
       <div v-for="game in games" :key="game.id" class="game-item">
         <div class="game-content" @click="navigateToGame(game.id)">
           <div class="game-icon">
-            <span v-if="!game.icon">🎮</span>
+            <span v-if="!game.icon">G</span>
             <img v-else :src="game.icon" :alt="game.name">
           </div>
           
           <div class="game-info">
             <h3>{{ game.name }}</h3>
-            <p class="game-directory">📁 {{ game.directory }}</p>
+            <p class="game-directory">{{ game.directory }}</p>
             <div class="game-meta">
               <span v-if="game.lastPlayed" class="last-played">
                 上次游玩: {{ formatDate(game.lastPlayed) }}
@@ -286,14 +286,14 @@ loadGames()
             @click="navigateToGame(game.id)"
             title="管理游戏"
           >
-            ⚙️ 管理
+            管理
           </button>
           <button 
             class="btn-danger" 
             @click.stop="removeGame(game.id)"
             title="删除游戏"
           >
-            🗑️ 删除
+            删除
           </button>
         </div>
       </div>

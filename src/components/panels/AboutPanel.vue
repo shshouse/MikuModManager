@@ -1,25 +1,25 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-
 const appInfo = ref({
   name: 'Miku Mods Manager',
-  version: '1.0.0',
-  author: 'SnailHouse',
-  description: '专为游戏模组管理而设计的现代化工具',
+  version: '0.1.0',
+  author: 'shshouse',
+  description: '简单的补丁管理工具，支持所有需要安装与回滚功能的场景',
   buildDate: '2025-01-08',
   license: 'MIT License'
 })
 
 const links = [
-  { name: 'GitHub', url: 'https://github.com/snailhouse/mikumodsmanager' },
-  { name: '官方网站', url: 'https://mikumods.com' },
-  { name: '用户手册', url: 'https://docs.mikumods.com' },
-  { name: '问题反馈', url: 'https://github.com/snailhouse/mikumodsmanager/issues' }
+  { name: 'GitHub仓库', url: 'https://github.com/shshouse/MikuModsManager' },
+  { name: '问题反馈', url: 'https://github.com/shshouse/MikuModsManager/issues' }
 ]
 
 function openLink(url: string) {
-  console.log('Opening link:', url)
-  // In a real Tauri app, you would use the shell API to open external links
+  try {
+    window.open(url, '_blank')
+  } catch (error) {
+    console.error('Failed to open link:', error)
+  }
 }
 
 function checkUpdates() {
@@ -30,10 +30,6 @@ function checkUpdates() {
 <template>
   <div class="about-panel">
     <div class="app-info-card">
-      <div class="app-icon">
-        <div class="icon-placeholder">🎵</div>
-      </div>
-      
       <div class="app-details">
         <h2>{{ appInfo.name }}</h2>
         <p class="version">版本 {{ appInfo.version }}</p>
@@ -56,10 +52,6 @@ function checkUpdates() {
       </div>
     </div>
 
-    <div class="actions-section">
-      <button @click="checkUpdates" class="btn-primary">检查更新</button>
-    </div>
-
     <div class="links-section">
       <h3>相关链接</h3>
       <div class="links-grid">
@@ -76,12 +68,11 @@ function checkUpdates() {
 
     <div class="credits-section">
       <h3>致谢</h3>
-      <p>感谢所有为这个项目做出贡献的开发者和用户。</p>
       <p>特别感谢开源社区提供的优秀工具和库。</p>
     </div>
 
     <div class="copyright">
-      <p>&copy; 2025 SnailHouse. All rights reserved.</p>
+      <p>&copy; 2025 shshouse. All rights reserved.</p>
     </div>
   </div>
 </template>
@@ -156,21 +147,6 @@ function checkUpdates() {
 .value {
   color: #2c3e50;
   font-size: 14px;
-}
-
-.actions-section {
-  margin-bottom: 30px;
-}
-
-.btn-primary {
-  padding: 12px 24px;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .btn-primary:hover {

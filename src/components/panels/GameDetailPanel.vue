@@ -326,7 +326,7 @@ function goBack() {
     <div v-else class="content">
       <!-- 游戏详情模块 -->
       <div class="section">
-        <h3>🎮 游戏详情</h3>
+        <h3>游戏详情</h3>
         <div class="game-info-card">
           <div class="info-row">
             <label>游戏名称:</label>
@@ -337,7 +337,7 @@ function goBack() {
             <div v-if="!isEditingDirectory" class="directory-display">
               <span class="directory-path">{{ game.directory }}</span>
               <button class="btn-edit" @click="isEditingDirectory = true">
-                ✏️ 修改
+                修改
               </button>
             </div>
             <div v-else class="directory-edit">
@@ -349,15 +349,15 @@ function goBack() {
                   placeholder="游戏目录路径..."
                 >
                 <button @click="selectNewDirectory" class="btn-browse">
-                  📁 浏览
+                  浏览
                 </button>
               </div>
               <div class="edit-actions">
                 <button @click="saveGameDirectory" class="btn-save">
-                  ✓ 保存
+                  保存
                 </button>
                 <button @click="cancelEditDirectory" class="btn-cancel">
-                  ✕ 取消
+                  取消
                 </button>
               </div>
             </div>
@@ -367,7 +367,7 @@ function goBack() {
 
       <!-- 补丁安装模块 -->
       <div class="section">
-        <h3>🔧 补丁安装</h3>
+        <h3>补丁安装</h3>
         <div class="patches-card">
           <div v-if="patches.length === 0" class="empty-state">
             <p>未找到可用补丁</p>
@@ -400,7 +400,7 @@ function goBack() {
                 class="btn-install"
               >
                 <span v-if="isLoading">安装中...</span>
-                <span v-else>🚀 安装选中补丁 ({{ selectedPatches.size }})</span>
+                <span v-else>安装选中补丁 ({{ selectedPatches.size }})</span>
               </button>
             </div>
           </div>
@@ -409,7 +409,7 @@ function goBack() {
 
       <!-- 备份回滚模块 -->
       <div class="section">
-        <h3>💾 备份回滚</h3>
+        <h3>备份回滚</h3>
         <div class="backups-card">
           <div v-if="backups.length === 0" class="empty-state">
             <p>暂无可用备份</p>
@@ -443,7 +443,7 @@ function goBack() {
                 class="btn-rollback"
               >
                 <span v-if="isLoading">回滚中...</span>
-                <span v-else">⏪ 回滚到选中备份</span>
+                <span v-else>回滚到选中备份</span>
               </button>
             </div>
           </div>

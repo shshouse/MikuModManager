@@ -22,7 +22,8 @@ function getTitle(): string {
     mods: '游戏管理',
     download: '下载(百度网盘/夸克网盘)',
     settings: '应用设置',
-    about: '关于我们'
+    about: '关于'
+
   }
   return titles[props.activeTab] || '未知页面'
 }

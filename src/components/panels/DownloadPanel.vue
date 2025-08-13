@@ -20,6 +20,15 @@ const availableMods = ref<AvailableMod[]>([
     description: '如果你是通过b站视频下载，那么整合包已经自带了，需要安装自己的模组可以查看设置教程',
     size: '245 MB',
     downloadUrl: 'https://example.com/mod1'
+  },
+    {
+    id: '2',
+    name: 'GTAIV 整合包（旧版）纪念用',
+    version: '1.1',
+    author: 'shshouse',
+    description: '旧版的安装器+整合包，纪念用，需要.net runtime前置依赖',
+    size: '180.9 MB',
+    downloadUrl: 'https://pan.baidu.com/s/19M2YLULkNtNYuL0cmi-OTQ?pwd=5u9q'
   }
 ])
 
@@ -54,6 +63,24 @@ function filteredMods() {
       >
       <button class="btn-refresh">刷新</button>
     </div>
+    <div class="use-method-card">
+      <h3 class="method-title">使用方法</h3>
+        <div class="step-item">
+          <div class="step-content">
+            <p>点击下载按钮前往网盘下载。</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-content">
+            <p>下载完成后，将模组文件解压到game/游戏路径名/patch，注意您的补丁文件夹内不能有其他文件，安装时会将文件夹内所有文件安装您选择的目录。</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-content">
+            <p>如果游戏打开错误，请使用恢复功能。</p>
+          </div>
+        </div>
+    </div>
 
     <div class="mods-grid">
       <div v-for="mod in filteredMods()" :key="mod.id" class="mod-card">
@@ -82,6 +109,54 @@ function filteredMods() {
 <style scoped>
 .download-panel {
   max-width: 1000px;
+}
+
+.use-method-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.method-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.step-item {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.step-item:last-child {
+  margin-bottom: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content p {
+  color: #34495e;
+  line-height: 1.6;
+  margin: 0;
+  padding-left: 24px;
+  position: relative;
+}
+
+.step-content p::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: #3498db;
+  border-radius: 50%;
 }
 
 .search-section {

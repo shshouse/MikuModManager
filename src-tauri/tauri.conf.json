@@ -25,6 +25,11 @@
       "csp": null
     }
   },
+  "plugins": {
+    "opener": {
+      "requireLiteralLeadingDot": false
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
