@@ -1,7 +1,10 @@
 # MikuModsManager
 MikuModsManager 是一个基于 Vue 3、TypeScript 和 Tauri 的桌面端应用程序，用于管理和安装游戏补丁。提供了一个直观的用户界面，让玩家可以轻松地安装、管理和回滚游戏补丁。
-![MikuModsManager Logo](public/1.png)
-![MikuModsManager Logo](public/2.png)
+
+<div style="display: flex; gap: 20px; justify-content: center; margin: 20px 0;">
+  <img src="public/1.png" alt="MikuModsManager Logo" style="max-width: 45%; height: auto;" />
+  <img src="public/2.png" alt="MikuModsManager Logo" style="max-width: 45%; height: auto;" />
+</div>
 ## ✨ 功能特点
 
 - **游戏管理**：添加和管理多个游戏
