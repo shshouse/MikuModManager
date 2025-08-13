@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import ModsPanel from './panels/ModsPanel.vue'
+import GameDetailPanel from './panels/GameDetailPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
 import SettingsPanel from './panels/SettingsPanel.vue'
 import AboutPanel from './panels/AboutPanel.vue'
@@ -8,7 +10,14 @@ const props = defineProps<{
   activeTab: string
 }>()
 
+const currentGameId = ref<string>('')
+const showGameDetail = ref(false)
+
 function getTitle(): string {
+  if (showGameDetail.value) {
+    return '游戏详情'
+  }
+  
   const titles: Record<string, string> = {
     mods: '游戏管理',
     download: '下载(百度网盘/夸克网盘)',
@@ -16,6 +25,16 @@ function getTitle(): string {
     about: '关于我们'
   }
   return titles[props.activeTab] || '未知页面'
+}
+
+function handleNavigateToGame(gameId: string) {
+  currentGameId.value = gameId
+  showGameDetail.value = true
+}
+
+function handleBackToMods() {
+  showGameDetail.value = false
+  currentGameId.value = ''
 }
 </script>
 
@@ -26,7 +45,15 @@ function getTitle(): string {
     </div>
     
     <div class="content-body">
-      <ModsPanel v-if="activeTab === 'mods'" />
+      <GameDetailPanel 
+        v-if="activeTab === 'mods' && showGameDetail" 
+        :game-id="currentGameId"
+        @back="handleBackToMods"
+      />
+      <ModsPanel 
+        v-else-if="activeTab === 'mods'" 
+        @navigate-to-game="handleNavigateToGame"
+      />
       <DownloadPanel v-else-if="activeTab === 'download'" />
       <SettingsPanel v-else-if="activeTab === 'settings'" />
       <AboutPanel v-else-if="activeTab === 'about'" />

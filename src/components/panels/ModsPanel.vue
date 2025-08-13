@@ -2,6 +2,14 @@
 import { ref, computed } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 
+const emit = defineEmits<{
+  'navigate-to-game': [gameId: string]
+}>()
+
+function navigateToGame(gameId: string) {
+  emit('navigate-to-game', gameId)
+}
+
 interface CustomGame {
   id: string
   name: string
@@ -252,28 +260,37 @@ loadGames()
       </div>
       
       <div v-for="game in games" :key="game.id" class="game-item">
-        <div class="game-icon">
-          <span v-if="!game.icon">🎮</span>
-          <img v-else :src="game.icon" :alt="game.name">
-        </div>
-        
-        <div class="game-info">
-          <h3>{{ game.name }}</h3>
-          <p class="game-directory">📁 {{ game.directory }}</p>
-          <div class="game-meta">
-            <span v-if="game.lastPlayed" class="last-played">
-              上次游玩: {{ formatDate(game.lastPlayed) }}
-            </span>
-            <span v-if="game.playTime" class="play-time">
-              游玩时间: {{ formatPlayTime(game.playTime) }}
-            </span>
+        <div class="game-content" @click="navigateToGame(game.id)">
+          <div class="game-icon">
+            <span v-if="!game.icon">🎮</span>
+            <img v-else :src="game.icon" :alt="game.name">
+          </div>
+          
+          <div class="game-info">
+            <h3>{{ game.name }}</h3>
+            <p class="game-directory">📁 {{ game.directory }}</p>
+            <div class="game-meta">
+              <span v-if="game.lastPlayed" class="last-played">
+                上次游玩: {{ formatDate(game.lastPlayed) }}
+              </span>
+              <span v-if="game.playTime" class="play-time">
+                游玩时间: {{ formatPlayTime(game.playTime) }}
+              </span>
+            </div>
           </div>
         </div>
         
         <div class="game-actions">
           <button 
+            class="btn-manage"
+            @click="navigateToGame(game.id)"
+            title="管理游戏"
+          >
+            ⚙️ 管理
+          </button>
+          <button 
             class="btn-danger" 
-            @click="removeGame(game.id)"
+            @click.stop="removeGame(game.id)"
             title="删除游戏"
           >
             🗑️ 删除
@@ -315,7 +332,7 @@ loadGames()
   font-weight: 500;
 }
 
-.btn-primary, .btn-secondary, .btn-danger, .btn-launch {
+.btn-primary, .btn-secondary, .btn-danger, .btn-launch, .btn-manage {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
