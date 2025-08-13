@@ -188,7 +188,7 @@ loadGames()
   <div class="mods-panel">
     <div class="panel-header">
       <button class="btn-primary" @click="showAddGameDialog">
-        添加自定义游戏
+        添加游戏
       </button>
       <div class="stats">
         <span class="stat-item">已添加游戏: {{ games.length }}</span>
