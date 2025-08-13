@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import ModsPanel from './panels/ModsPanel.vue'
 import GameDetailPanel from './panels/GameDetailPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
-import SettingsPanel from './panels/SettingsPanel.vue'
+
 import AboutPanel from './panels/AboutPanel.vue'
 
 const props = defineProps<{
@@ -21,7 +21,6 @@ function getTitle(): string {
   const titles: Record<string, string> = {
     mods: '游戏管理',
     download: '下载(百度网盘/夸克网盘)',
-    settings: '应用设置',
     about: '关于'
 
   }
@@ -56,7 +55,7 @@ function handleBackToMods() {
         @navigate-to-game="handleNavigateToGame"
       />
       <DownloadPanel v-else-if="activeTab === 'download'" />
-      <SettingsPanel v-else-if="activeTab === 'settings'" />
+      
       <AboutPanel v-else-if="activeTab === 'about'" />
     </div>
   </div>

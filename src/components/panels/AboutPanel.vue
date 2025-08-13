@@ -6,7 +6,8 @@ const appInfo = ref({
   author: 'shshouse',
   description: '简单的补丁管理工具，支持所有需要安装与回滚功能的场景',
   buildDate: '2025-01-08',
-  license: 'MIT License'
+  license: 'MIT License',
+  image:'なの'
 })
 
 const links = [
@@ -47,6 +48,10 @@ function checkUpdates() {
           <div class="info-item">
             <span class="label">许可证:</span>
             <span class="value">{{ appInfo.license }}</span>
+          </div> 
+          <div class="info-item">
+            <span class="label">图标来自:</span>
+            <span class="value">{{ appInfo.image }}</span>
           </div>
         </div>
       </div>
