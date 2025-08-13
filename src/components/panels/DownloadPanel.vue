@@ -6,49 +6,32 @@ interface AvailableMod {
   name: string
   version: string
   author: string
-  downloads: number
-  rating: number
   description: string
   size: string
+  downloadUrl: string
 }
 
 const availableMods = ref<AvailableMod[]>([
   {
     id: '1',
-    name: 'Ultimate Graphics Pack',
-    version: '3.2.1',
-    author: 'GraphicsMaster',
-    downloads: 15420,
-    rating: 4.8,
-    description: '终极画质增强包，包含高清纹理和光影效果',
-    size: '245 MB'
-  },
-  {
-    id: '2',
-    name: 'Sound Overhaul Mod',
-    version: '2.0.5',
-    author: 'AudioPro',
-    downloads: 8930,
-    rating: 4.6,
-    description: '全面音效重制，提供沉浸式音频体验',
-    size: '128 MB'
-  },
-  {
-    id: '3',
-    name: 'Performance Optimizer',
-    version: '1.8.3',
-    author: 'SpeedDemon',
-    downloads: 22100,
-    rating: 4.9,
-    description: '性能优化工具，提升游戏帧率和稳定性',
-    size: '45 MB'
+    name: 'GTAIV 整合包',
+    version: '1.0',
+    author: 'shshouse',
+    description: '如果你是通过b站视频下载，那么整合包已经自带了，需要安装自己的模组可以查看设置教程',
+    size: '245 MB',
+    downloadUrl: 'https://example.com/mod1'
   }
 ])
 
 const searchQuery = ref('')
 
 function downloadMod(modId: string) {
-  console.log('Downloading mod:', modId)
+  const mod = availableMods.value.find(m => m.id === modId);
+  if (mod && mod.downloadUrl) {
+    window.open(mod.downloadUrl, '_blank');
+  } else {
+    console.log('Downloading mod:', modId);
+  }
 }
 
 function filteredMods() {
@@ -76,10 +59,6 @@ function filteredMods() {
       <div v-for="mod in filteredMods()" :key="mod.id" class="mod-card">
         <div class="mod-header">
           <h3>{{ mod.name }}</h3>
-          <div class="mod-rating">
-            <span class="stars">★★★★★</span>
-            <span class="rating-value">{{ mod.rating }}</span>
-          </div>
         </div>
         
         <div class="mod-meta">
@@ -90,9 +69,7 @@ function filteredMods() {
         
         <p class="mod-description">{{ mod.description }}</p>
         
-        <div class="mod-stats">
-          <span class="downloads">{{ mod.downloads.toLocaleString() }} 下载</span>
-        </div>
+
         
         <button @click="downloadMod(mod.id)" class="btn-download">
           下载模组
@@ -163,21 +140,7 @@ function filteredMods() {
   font-size: 16px;
 }
 
-.mod-rating {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
 
-.stars {
-  color: #f39c12;
-  font-size: 12px;
-}
-
-.rating-value {
-  font-size: 12px;
-  color: #7f8c8d;
-}
 
 .mod-meta {
   display: flex;
@@ -194,11 +157,7 @@ function filteredMods() {
   margin-bottom: 15px;
 }
 
-.mod-stats {
-  margin-bottom: 15px;
-  font-size: 12px;
-  color: #7f8c8d;
-}
+
 
 .btn-download {
   width: 100%;
