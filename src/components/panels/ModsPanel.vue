@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
+import { invoke } from '@tauri-apps/api/core'
 
 const emit = defineEmits<{
   'navigate-to-game': [gameId: string]
@@ -116,6 +117,46 @@ async function addGame() {
     
     // Save to local storage or backend
     saveGames()
+    
+    // Create game directory structure
+    try {
+      // Get app directory
+      const appDirectory = await invoke('get_app_dir')
+      
+      // Create main game directory if it doesn't exist
+      const gameDir = `${appDirectory}/game`
+      const gameDirExists = await invoke('file_exists', { path: gameDir })
+      if (!gameDirExists) {
+        await invoke('create_directory', { path: gameDir })
+        console.log('Created main game directory:', gameDir)
+      }
+      
+      // Create game-specific directory
+      const gameSpecificDir = `${gameDir}/${game.name}`
+      const gameSpecificDirExists = await invoke('file_exists', { path: gameSpecificDir })
+      if (!gameSpecificDirExists) {
+        await invoke('create_directory', { path: gameSpecificDir })
+        console.log('Created game-specific directory:', gameSpecificDir)
+      }
+      
+      // Create patch directory
+      const patchDir = `${gameSpecificDir}/patch`
+      const patchDirExists = await invoke('file_exists', { path: patchDir })
+      if (!patchDirExists) {
+        await invoke('create_directory', { path: patchDir })
+        console.log('Created patch directory:', patchDir)
+      }
+      
+      // Create backup directory
+      const backupDir = `${gameSpecificDir}/backup`
+      const backupDirExists = await invoke('file_exists', { path: backupDir })
+      if (!backupDirExists) {
+        await invoke('create_directory', { path: backupDir })
+        console.log('Created backup directory:', backupDir)
+      }
+    } catch (error) {
+      console.error('Failed to create game directory structure:', error)
+    }
   } catch (error) {
     console.error('Failed to add game:', error)
   } finally {
