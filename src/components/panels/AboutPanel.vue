@@ -23,9 +23,7 @@ function openLink(url: string) {
   }
 }
 
-function checkUpdates() {
-  console.log('Checking for updates...')
-}
+
 </script>
 
 <template>
