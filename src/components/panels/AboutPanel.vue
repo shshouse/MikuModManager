@@ -5,7 +5,7 @@ const appInfo = ref({
   version: '0.1.0',
   author: 'shshouse',
   description: '简单的补丁管理工具，支持所有需要安装与回滚功能的场景',
-  buildDate: '2025-01-08',
+  buildDate: '2025-08-13',
   license: 'MIT License',
   image:'なの'
 })

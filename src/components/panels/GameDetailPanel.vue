@@ -57,6 +57,16 @@ async function loadAppDirectory() {
   try {
     // Get current directory (where exe is located)
     appDirectory.value = await invoke('get_app_dir')
+
+    // Check if game directory exists
+    const gameDir = `${appDirectory.value}/game`
+    const gameDirExists = await invoke('file_exists', { path: gameDir })
+
+    // Create game directory if it doesn't exist
+    if (!gameDirExists) {
+      await invoke('create_directory', { path: gameDir })
+      console.log('Created game directory:', gameDir)
+    }
   } catch (error) {
     console.error('Failed to get app directory:', error)
     // Fallback to current directory
