@@ -20,7 +20,7 @@ function getTitle(): string {
   
   const titles: Record<string, string> = {
     mods: '游戏管理',
-    download: '下载(百度网盘/夸克网盘)',
+    download: '下载(网盘)',
     about: '关于'
 
   }
