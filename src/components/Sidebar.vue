@@ -27,7 +27,7 @@ function selectTab(tabId: string) {
 <template>
   <div class="sidebar">
     <div class="sidebar-header">
-      <h2>Miku Mods</h2>
+      <h2>Miku Mod Manager</h2>
     </div>
     
     <nav class="sidebar-nav">

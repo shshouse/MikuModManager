@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 const appInfo = ref({
-  name: 'Miku Mods Manager',
+  name: 'Miku Mod Manager',
   version: '0.1.0',
   author: 'shshouse',
   description: '简单的补丁管理工具，支持所有需要安装与回滚功能的场景',
