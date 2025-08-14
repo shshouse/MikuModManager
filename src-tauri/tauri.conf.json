@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "mikumodsmanager",
+  "productName": "MikuModManager",
   "version": "0.1.0",
-  "identifier": "com.snailhouse.mikumodsmanager",
+  "identifier": "com.shshouse.mikumodsmanager",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Miku Mods Manager",
+        "title": "Miku Mod Manager",
         "width": 900,
         "height": 650,
         "minWidth": 800,
