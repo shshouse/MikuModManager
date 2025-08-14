@@ -2,11 +2,11 @@
 import { ref } from 'vue'
 const appInfo = ref({
   name: 'Miku Mod Manager',
-  version: '0.1.0',
+  version: '0.1.1',
   author: 'shshouse',
   description: '简单的补丁管理工具，支持所有需要安装与回滚功能的场景',
   buildDate: '2025-08-13',
-  license: 'MIT License',
+  license: 'Apache 2.0 License',
   image:'なの'
 })
 
