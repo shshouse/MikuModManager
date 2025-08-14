@@ -72,7 +72,7 @@ MikuModsManager 是一个基于 Vue 3、TypeScript 和 Tauri 的桌面端应用�
 
 ## 💬 联系我们
 
-- 项目负责人: [Your Name](https://github.com/shshouse)
+- 项目负责人: [shshouse](https://github.com/shshouse)
 - 反馈问题: [Issues](https://github.com/shshouse/MikuModsManager/issues)
 
 ## ❤️ 鸣谢
