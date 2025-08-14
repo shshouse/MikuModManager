@@ -17,9 +17,9 @@ const availableMods = ref<AvailableMod[]>([
     name: 'GTAIV 整合包',
     version: '1.0',
     author: 'shshouse',
-    description: '如果你是通过b站视频下载，那么整合包已经自带了，需要安装自己的模组可以查看设置教程',
-    size: '245 MB',
-    downloadUrl: 'https://example.com/mod1'
+    description: '包含修改器，汉化，帧率限制补丁，ENB，支线任务(让所有出租车可以接单)',
+    size: '131 MB',
+    downloadUrl: 'https://pan.baidu.com/s/1uMIsstlCcEnPA5sJUNgcbQ?pwd=gta4'
   },
     {
     id: '2',
@@ -29,6 +29,15 @@ const availableMods = ref<AvailableMod[]>([
     description: '旧版的安装器+整合包，纪念用，需要.net runtime前置依赖',
     size: '180.9 MB',
     downloadUrl: 'https://pan.baidu.com/s/19M2YLULkNtNYuL0cmi-OTQ?pwd=5u9q'
+  }, 
+  {
+    id: '3',
+    name: 'GTAIV 4K材质包',
+    version: '未知',
+    author: '未知',
+    description: '转载自里昂，配置好可以尝试使用',
+    size: '1.47 GB',
+    downloadUrl: 'https://pan.baidu.com/s/1H-6G9tFL51k-1UxUCNgn8A?pwd=kd8s'
   }
 ])
 
