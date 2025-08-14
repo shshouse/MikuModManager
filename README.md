@@ -67,7 +67,8 @@ MikuModsManager 是一个基于 Vue 3、TypeScript 和 Tauri 的桌面端应用�
 
 ## 📝 许可证
 
-本项目采用 MIT 许可证 - 详情请见 [LICENSE](LICENSE) 文件
+本项目采用 Apache 2.0 许可证 - 详情请见 [LICENSE](LICENSE) 文件
+
 
 ## 💬 联系我们
 
