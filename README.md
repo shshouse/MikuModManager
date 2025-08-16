@@ -34,9 +34,11 @@
 1. 在游戏详情页面中，选择要回滚到的备份
 2. 点击「回滚到选中备份」按钮
 
-## 💬 联系我们
+## 💬 联系我
 
 - 项目负责人: [shshouse](https://github.com/shshouse)
+- Bilibili: [shshouse](https://space.bilibili.com/3493127123897196)
+- 爱发电: [shshouse](https://afdian.com/a/shshouse)
 - 反馈问题: [Issues](https://github.com/shshouse/MikuModsManager/issues)
 
 ## ❤️ 鸣谢
