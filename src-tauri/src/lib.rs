@@ -368,7 +368,8 @@ pub fn run() {
             scan_gta4_path,
             get_gta4_mod_info,
             scan_jc3_path,
-            get_jc3_mod_info
+            get_jc3_mod_info,
+            launch_game
         ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
