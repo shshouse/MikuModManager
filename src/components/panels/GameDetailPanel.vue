@@ -10,6 +10,7 @@ interface CustomGame {
   icon?: string
   lastPlayed?: Date
   playTime?: number
+  launchOptions?: string
 }
 
 interface Patch {
@@ -41,6 +42,8 @@ const selectedBackup = ref<string>('')
 const isLoading = ref(false)
 const newGameDirectory = ref('')
 const isEditingDirectory = ref(false)
+const launchOptions = ref('')
+const isEditingLaunchOptions = ref(false)
 
 // Removed unused computed property
 
@@ -82,6 +85,12 @@ async function loadGame() {
       game.value = games.find(g => g.id === props.gameId) || null
       if (game.value) {
         newGameDirectory.value = game.value.directory
+        // 加载启动选项，如果是JC3则设置默认值
+        if (props.gameId === 'jc3-special') {
+          launchOptions.value = game.value.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
+        } else {
+          launchOptions.value = game.value.launchOptions || ''
+        }
       }
     }
   } catch (error) {
@@ -192,6 +201,65 @@ async function saveGameDirectory() {
 function cancelEditDirectory() {
   newGameDirectory.value = game.value?.directory || ''
   isEditingDirectory.value = false
+}
+
+async function saveLaunchOptions() {
+  if (!game.value) return
+  
+  try {
+    game.value.launchOptions = launchOptions.value.trim()
+    
+    // Update in localStorage
+    const saved = localStorage.getItem('customGames')
+    if (saved) {
+      const games: CustomGame[] = JSON.parse(saved)
+      const index = games.findIndex(g => g.id === props.gameId)
+      if (index > -1) {
+        games[index] = game.value
+        localStorage.setItem('customGames', JSON.stringify(games))
+      }
+    }
+    
+    isEditingLaunchOptions.value = false
+  } catch (error) {
+    console.error('Failed to save launch options:', error)
+  }
+}
+
+function cancelEditLaunchOptions() {
+  if (props.gameId === 'jc3-special') {
+    launchOptions.value = game.value?.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
+  } else {
+    launchOptions.value = game.value?.launchOptions || ''
+  }
+  isEditingLaunchOptions.value = false
+}
+
+function resetToDefaultLaunchOptions() {
+  if (props.gameId === 'jc3-special') {
+    launchOptions.value = '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
+  }
+}
+
+async function launchGame() {
+  if (!game.value) return
+  
+  isLoading.value = true
+  
+  try {
+    const options = launchOptions.value || ''
+    const result = await invoke('launch_game', { 
+      gamePath: game.value.directory, 
+      launchOptions: options 
+    })
+    
+    alert(result as string)
+  } catch (error) {
+    console.error('Failed to launch game:', error)
+    alert('启动游戏失败：' + error)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 async function installPatches() {
@@ -370,6 +438,57 @@ function goBack() {
                   取消
                 </button>
               </div>
+            </div>
+          </div>
+          
+          <!-- 启动选项设置 (仅对Just Cause 3显示) -->
+          <div v-if="game.id === 'jc3-special'" class="info-row">
+            <label>启动选项:</label>
+            <div v-if="!isEditingLaunchOptions" class="launch-options-display">
+              <span class="launch-options-text">{{ launchOptions || '(未设置)' }}</span>
+              <button class="btn-edit" @click="isEditingLaunchOptions = true">
+                修改
+              </button>
+            </div>
+            <div v-else class="launch-options-edit">
+              <div class="launch-options-input">
+                <input 
+                  v-model="launchOptions" 
+                  type="text" 
+                  class="form-input"
+                  placeholder="输入启动选项..."
+                >
+                <button @click="resetToDefaultLaunchOptions" class="btn-reset">
+                  重置默认
+                </button>
+              </div>
+              <div class="edit-actions">
+                <button @click="saveLaunchOptions" class="btn-save">
+                  保存
+                </button>
+                <button @click="cancelEditLaunchOptions" class="btn-cancel">
+                  取消
+                </button>
+              </div>
+              <div class="launch-options-help">
+                <small>默认选项: --vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs</small>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 游戏启动按钮 (仅对Just Cause 3显示) -->
+          <div v-if="game.id === 'jc3-special'" class="info-row">
+            <label></label>
+            <div class="launch-game-section">
+              <button 
+                @click="launchGame" 
+                :disabled="isLoading"
+                class="btn-launch-game"
+              >
+                <span v-if="isLoading">启动中...</span>
+                <span v-else>启动 正当防卫3</span>
+              </button>
+              <small class="launch-help">使用上面设置的启动选项启动游戏</small>
             </div>
           </div>
         </div>
@@ -608,6 +727,97 @@ function goBack() {
   white-space: nowrap;
 }
 
+.launch-options-display {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+}
+
+.launch-options-text {
+  font-family: 'Consolas', 'Monaco', monospace;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  flex: 1;
+  word-break: break-all;
+  color: #2c3e50;
+}
+
+.launch-options-edit {
+  flex: 1;
+}
+
+.launch-options-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.btn-reset {
+  padding: 10px 15px;
+  background-color: #f39c12;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.launch-options-help {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #e8f4fd;
+  border-radius: 4px;
+  border-left: 3px solid #3498db;
+}
+
+.launch-options-help small {
+  color: #2980b9;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.launch-game-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.btn-launch-game {
+  padding: 15px 30px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.btn-launch-game:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.btn-launch-game:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.launch-help {
+  color: #7f8c8d;
+  font-size: 12px;
+  text-align: center;
+}
+
 .edit-actions {
   display: flex;
   gap: 10px;
@@ -727,7 +937,7 @@ function goBack() {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-.btn-edit:hover, .btn-browse:hover, .btn-save:hover, .btn-cancel:hover {
+.btn-edit:hover, .btn-browse:hover, .btn-save:hover, .btn-cancel:hover, .btn-reset:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }

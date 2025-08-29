@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -282,6 +283,70 @@ fn get_jc3_mod_info(game_path: String) -> Result<serde_json::Value, String> {
     mod_info["mod_folders"] = serde_json::json!(existing_folders);
     
     Ok(mod_info)
+}
+
+#[tauri::command]
+fn launch_game(game_path: String, launch_options: String) -> Result<String, String> {
+    let game_dir = PathBuf::from(&game_path);
+    
+    // 查找游戏可执行文件
+    let exe_path = find_game_executable(&game_dir)?;
+    
+    let mut cmd = Command::new(&exe_path);
+    
+    // 解析启动选项
+    if !launch_options.trim().is_empty() {
+        let args: Vec<&str> = launch_options.split_whitespace().collect();
+        cmd.args(&args);
+    }
+    
+    // 设置工作目录为游戏目录
+    cmd.current_dir(&game_dir);
+    
+    match cmd.spawn() {
+        Ok(_) => Ok("游戏启动成功".to_string()),
+        Err(e) => Err(format!("游戏启动失败: {}", e))
+    }
+}
+
+fn find_game_executable(game_dir: &Path) -> Result<PathBuf, String> {
+    // 常见的游戏可执行文件名
+    let possible_exes = vec![
+        "JustCause3.exe",
+        "JC3.exe", 
+        "GTAIV.exe",
+        "LaunchGTAIV.exe",
+        "game.exe"
+    ];
+    
+    for exe_name in possible_exes {
+        let exe_path = game_dir.join(exe_name);
+        if exe_path.exists() {
+            return Ok(exe_path);
+        }
+    }
+    
+    // 如果没找到，尝试查找任何.exe文件
+    if let Ok(entries) = fs::read_dir(game_dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if let Some(extension) = path.extension() {
+                    if extension == "exe" {
+                        if let Some(file_name) = path.file_name() {
+                            let name = file_name.to_string_lossy().to_lowercase();
+                            // 跳过一些明显不是游戏主程序的exe
+                            if !name.contains("uninstall") && !name.contains("setup") && !name.contains("launcher") {
+                                return Ok(path);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    Err("未找到游戏可执行文件".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
