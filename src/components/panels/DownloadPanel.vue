@@ -19,7 +19,7 @@ const availableMods = ref<AvailableMod[]>([
     author: 'shshouse',
     description: '包含修改器，汉化，帧率限制补丁，ENB，支线任务(让所有出租车可以接单)',
     size: '131 MB',
-    downloadUrl: 'https://pan.baidu.com/s/1uMIsstlCcEnPA5sJUNgcbQ?pwd=gta4'
+    downloadUrl: 'https://pan.quark.cn/s/aecd8dfab30c'
   },
     {
     id: '2',
@@ -28,7 +28,7 @@ const availableMods = ref<AvailableMod[]>([
     author: 'shshouse',
     description: '旧版的安装器+整合包，纪念用，需要.net runtime前置依赖',
     size: '180.9 MB',
-    downloadUrl: 'https://pan.baidu.com/s/19M2YLULkNtNYuL0cmi-OTQ?pwd=5u9q'
+    downloadUrl: 'https://pan.quark.cn/s/ec8d05bd40b7'
   }, 
   {
     id: '3',
@@ -37,7 +37,7 @@ const availableMods = ref<AvailableMod[]>([
     author: '未知',
     description: '转载自里昂，配置好可以尝试使用',
     size: '1.47 GB',
-    downloadUrl: 'https://pan.baidu.com/s/1H-6G9tFL51k-1UxUCNgn8A?pwd=kd8s'
+    downloadUrl: 'https://pan.quark.cn/s/e1f8cf6cd1b5'
   }
 ])
 
