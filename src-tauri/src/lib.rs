@@ -214,16 +214,7 @@ fn get_gta4_mod_info(game_path: String) -> Result<serde_json::Value, String> {
     });
     
     // 检查常见的模组文件夹
-    let mod_folders = vec![];
-    
-    let mut existing_folders = Vec::new();
-    for folder in mod_folders {
-        let folder_path = gta4_path.join(folder);
-        if folder_path.exists() {
-            existing_folders.push(folder);
-        }
-    }
-    
+    let existing_folders: Vec<String> = Vec::new();
     mod_info["mod_folders"] = serde_json::json!(existing_folders);
     
     Ok(mod_info)
@@ -232,30 +223,6 @@ fn get_gta4_mod_info(game_path: String) -> Result<serde_json::Value, String> {
 #[tauri::command]
 fn scan_jc3_path() -> Result<Vec<String>, String> {
     let mut jc3_paths = Vec::new();
-    
-    // 常见的正当防卫3安装路径
-    let common_paths = vec![
-        "C:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
-        "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Just Cause 3",
-        "D:\\Steam\\steamapps\\common\\Just Cause 3",
-        "E:\\Steam\\steamapps\\common\\Just Cause 3",
-        "F:\\Steam\\steamapps\\common\\Just Cause 3",
-        "D:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
-        "E:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
-        "F:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
-        "C:\\Program Files\\Epic Games\\JustCause3",
-        "C:\\Program Files (x86)\\Epic Games\\JustCause3",
-        "D:\\Epic Games\\JustCause3",
-        "E:\\Epic Games\\JustCause3",
-        "F:\\Epic Games\\JustCause3",
-    ];
-    
-    // 检查常见路径
-    for path in common_paths {
-        if Path::new(path).exists() {
-            jc3_paths.push(path.to_string());
-        }
-    }
     
     // 如果没有找到，尝试扫描注册表（Windows）
     if jc3_paths.is_empty() {
@@ -311,16 +278,7 @@ fn get_jc3_mod_info(game_path: String) -> Result<serde_json::Value, String> {
     });
     
     // 检查常见的模组文件夹
-    let mod_folders = vec![];
-    
-    let mut existing_folders = Vec::new();
-    for folder in mod_folders {
-        let folder_path = jc3_path.join(folder);
-        if folder_path.exists() {
-            existing_folders.push(folder);
-        }
-    }
-    
+    let existing_folders: Vec<String> = Vec::new();
     mod_info["mod_folders"] = serde_json::json!(existing_folders);
     
     Ok(mod_info)
