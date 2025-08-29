@@ -236,106 +236,122 @@ loadGames()
       </div>
     </div>
 
-    <!-- Add Game Dialog -->
-    <div v-if="showAddDialog" class="dialog-overlay" @click.self="cancelAdd">
-      <div class="dialog">
-        <div class="dialog-header">
-          <h3>添加自定义游戏</h3>
-          <button class="close-btn" @click="cancelAdd">×</button>
-        </div>
-        
-        <div class="dialog-body">
-          <div class="form-group">
-            <label>游戏名称 <span class="required">*</span></label>
-            <input 
-              v-model="newGame.name" 
-              type="text" 
-              placeholder="输入游戏名称..."
-              class="form-input"
-              :class="{ error: errors.name }"
-              @blur="validateName"
-              @input="validateName"
-            >
-            <div v-if="errors.name" class="error-message">{{ errors.name }}</div>
-          </div>
-          
-          <div class="form-group">
-            <label>游戏目录 <span class="required">*</span></label>
-            <div class="directory-input">
-              <input 
-                v-model="newGame.directory" 
-                type="text" 
-                placeholder="选择游戏安装目录..."
-                readonly
-                class="form-input"
-                :class="{ error: errors.directory }"
-              >
-              <button @click="selectDirectory" class="btn-browse">
-                浏览
-              </button>
-            </div>
-            <div v-if="errors.directory" class="error-message">{{ errors.directory }}</div>
-          </div>
-
-        </div>
-        
-        <div class="dialog-actions">
-          <button 
-            @click="addGame" 
-            class="btn-primary"
-            :disabled="!isFormValid || isLoading"
-          >
-            <span v-if="isLoading">添加中...</span>
-            <span v-else>添加游戏</span>
-          </button>
-          <button @click="cancelAdd" class="btn-secondary">取消</button>
+    <!-- 特别支持游戏模块 -->
+    <div class="module-section">
+      <h2>特别支持游戏</h2>
+      <div class="supported-games-content">
+        <div class="empty-state">
+          <p>特别支持游戏功能即将上线，敬请期待...</p>
         </div>
       </div>
     </div>
 
-    <!-- Games List -->
-    <div class="games-list">
-      <div v-if="games.length === 0" class="empty-state">
-        <h3>暂无自定义游戏</h3>
-        <p>点击上方按钮添加您的第一个游戏</p>
-      </div>
-      
-      <div v-for="game in games" :key="game.id" class="game-item">
-        <div class="game-content" @click="navigateToGame(game.id)">
-          <div class="game-icon">
-            <span v-if="!game.icon">G</span>
-            <img v-else :src="game.icon" :alt="game.name">
-          </div>
-          
-          <div class="game-info">
-            <h3>{{ game.name }}</h3>
-            <p class="game-directory">{{ game.directory }}</p>
-            <div class="game-meta">
-              <span v-if="game.lastPlayed" class="last-played">
-                上次游玩: {{ formatDate(game.lastPlayed) }}
-              </span>
-              <span v-if="game.playTime" class="play-time">
-                游玩时间: {{ formatPlayTime(game.playTime) }}
-              </span>
+    <!-- 自定义游戏模块 -->
+    <div class="module-section">
+      <h2>自定义游戏</h2>
+      <div class="custom-games-content">
+        <!-- Add Game Dialog -->
+        <div v-if="showAddDialog" class="dialog-overlay" @click.self="cancelAdd">
+          <div class="dialog">
+            <div class="dialog-header">
+              <h3>添加自定义游戏</h3>
+              <button class="close-btn" @click="cancelAdd">×</button>
+            </div>
+            
+            <div class="dialog-body">
+              <div class="form-group">
+                <label>游戏名称 <span class="required">*</span></label>
+                <input 
+                  v-model="newGame.name" 
+                  type="text" 
+                  placeholder="输入游戏名称..."
+                  class="form-input"
+                  :class="{ error: errors.name }"
+                  @blur="validateName"
+                  @input="validateName"
+                >
+                <div v-if="errors.name" class="error-message">{{ errors.name }}</div>
+              </div>
+              
+              <div class="form-group">
+                <label>游戏目录 <span class="required">*</span></label>
+                <div class="directory-input">
+                  <input 
+                    v-model="newGame.directory" 
+                    type="text" 
+                    placeholder="选择游戏安装目录..."
+                    readonly
+                    class="form-input"
+                    :class="{ error: errors.directory }"
+                  >
+                  <button @click="selectDirectory" class="btn-browse">
+                    浏览
+                  </button>
+                </div>
+                <div v-if="errors.directory" class="error-message">{{ errors.directory }}</div>
+              </div>
+
+            </div>
+            
+            <div class="dialog-actions">
+              <button 
+                @click="addGame" 
+                class="btn-primary"
+                :disabled="!isFormValid || isLoading"
+              >
+                <span v-if="isLoading">添加中...</span>
+                <span v-else>添加游戏</span>
+              </button>
+              <button @click="cancelAdd" class="btn-secondary">取消</button>
             </div>
           </div>
         </div>
-        
-        <div class="game-actions">
-          <button 
-            class="btn-manage"
-            @click="navigateToGame(game.id)"
-            title="管理游戏"
-          >
-            管理
-          </button>
-          <button 
-            class="btn-danger" 
-            @click.stop="removeGame(game.id)"
-            title="删除游戏"
-          >
-            删除
-          </button>
+
+        <!-- Games List -->
+        <div class="games-list">
+          <div v-if="games.length === 0" class="empty-state">
+            <h3>暂无自定义游戏</h3>
+            <p>点击上方按钮添加您的第一个游戏</p>
+          </div>
+          
+          <div v-for="game in games" :key="game.id" class="game-item">
+            <div class="game-content" @click="navigateToGame(game.id)">
+              <div class="game-icon">
+                <span v-if="!game.icon">G</span>
+                <img v-else :src="game.icon" :alt="game.name">
+              </div>
+              
+              <div class="game-info">
+                <h3>{{ game.name }}</h3>
+                <p class="game-directory">{{ game.directory }}</p>
+                <div class="game-meta">
+                  <span v-if="game.lastPlayed" class="last-played">
+                    上次游玩: {{ formatDate(game.lastPlayed) }}
+                  </span>
+                  <span v-if="game.playTime" class="play-time">
+                    游玩时间: {{ formatPlayTime(game.playTime) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="game-actions">
+              <button 
+                class="btn-manage"
+                @click="navigateToGame(game.id)"
+                title="管理游戏"
+              >
+                管理
+              </button>
+              <button 
+                class="btn-danger" 
+                @click.stop="removeGame(game.id)"
+                title="删除游戏"
+              >
+                删除
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -373,6 +389,28 @@ loadGames()
   font-weight: 500;
 }
 
+/* 模块样式 */
+.module-section {
+  margin-bottom: 30px;
+}
+
+.module-section h2 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 600;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #3498db;
+}
+
+.supported-games-content, .custom-games-content {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  padding: 25px;
+}
+
+/* 按钮样式 */
 .btn-primary, .btn-secondary, .btn-danger, .btn-launch, .btn-manage {
   padding: 10px 20px;
   border: none;
@@ -431,6 +469,7 @@ loadGames()
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
+/* 对话框样式 */
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -561,6 +600,7 @@ loadGames()
   background: #f8f9fa;
 }
 
+/* 游戏列表样式 */
 .games-list {
   display: flex;
   flex-direction: column;
@@ -569,10 +609,10 @@ loadGames()
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
-  background: white;
-  border-radius: 12px;
-  border: 2px dashed #e0e0e0;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #e0e0e0;
 }
 
 .empty-icon {
