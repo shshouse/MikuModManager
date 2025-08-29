@@ -137,26 +137,9 @@ fn read_file(path: String) -> Result<String, String> {
 fn scan_gta4_path() -> Result<Vec<String>, String> {
     let mut gta4_paths = Vec::new();
     
-    // 常见的GTAIV安装路径（已包含GTAIV子目录）
-    let common_paths = vec![
-        "C:\\Program Files\\Rockstar Games\\Grand Theft Auto IV\\GTAIV",
-        "C:\\Program Files (x86)\\Rockstar Games\\Grand Theft Auto IV\\GTAIV",
-        "C:\\Program Files\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-        "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-        "D:\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-        "E:\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-        "F:\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-        "D:\\Program Files\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-        "E:\\Program Files\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-        "F:\\Program Files\\Steam\\steamapps\\common\\Grand Theft Auto IV\\GTAIV",
-    ];
+
     
-    // 检查常见路径
-    for path in common_paths {
-        if Path::new(path).exists() {
-            gta4_paths.push(path.to_string());
-        }
-    }
+
     
     // 如果没有找到，尝试扫描注册表（Windows）
     if gta4_paths.is_empty() {
@@ -189,8 +172,20 @@ fn scan_registry_for_gta4() -> Result<String, String> {
         }
     }
     
-    // 尝试Rockstar Games注册表路径
-    if let Ok(rockstar_key) = hklm.open_subkey("SOFTWARE\\Rockstar Games\\Grand Theft Auto IV") {
+    // 根据系统架构选择注册表路径
+    // 检查是否为64位系统
+    let is_64_bit = std::env::consts::ARCH == "x86_64" || std::env::consts::ARCH == "aarch64";
+    
+    let rockstar_reg_path = if is_64_bit {
+        // 64位系统使用WOW6432Node路径
+        "SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto IV"
+    } else {
+        // 32位系统直接使用Rockstar Games路径
+        "SOFTWARE\\Rockstar Games\\Grand Theft Auto IV"
+    };
+    
+    // 尝试从Rockstar Games注册表路径读取
+    if let Ok(rockstar_key) = hklm.open_subkey(rockstar_reg_path) {
         if let Ok(install_dir) = rockstar_key.get_value::<String, _>("InstallFolder") {
             return Ok(install_dir);
         }
@@ -215,30 +210,112 @@ fn get_gta4_mod_info(game_path: String) -> Result<serde_json::Value, String> {
     let mut mod_info = serde_json::json!({
         "game_name": "GTAIV",
         "game_path": game_path,
-        "supported_mods": [
-            "车辆模型替换",
-            "武器模型替换", 
-            "角色皮肤替换",
-            "地图纹理替换",
-            "脚本模组",
-            "ENB图形增强"
-        ],
         "mod_folders": [],
-        "backup_recommended": true
     });
     
     // 检查常见的模组文件夹
-    let mod_folders = vec![
-        "models",
-        "textures", 
-        "scripts",
-        "plugins",
-        "ENBSeries"
-    ];
+    let mod_folders = vec![];
     
     let mut existing_folders = Vec::new();
     for folder in mod_folders {
         let folder_path = gta4_path.join(folder);
+        if folder_path.exists() {
+            existing_folders.push(folder);
+        }
+    }
+    
+    mod_info["mod_folders"] = serde_json::json!(existing_folders);
+    
+    Ok(mod_info)
+}
+
+#[tauri::command]
+fn scan_jc3_path() -> Result<Vec<String>, String> {
+    let mut jc3_paths = Vec::new();
+    
+    // 常见的正当防卫3安装路径
+    let common_paths = vec![
+        "C:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
+        "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Just Cause 3",
+        "D:\\Steam\\steamapps\\common\\Just Cause 3",
+        "E:\\Steam\\steamapps\\common\\Just Cause 3",
+        "F:\\Steam\\steamapps\\common\\Just Cause 3",
+        "D:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
+        "E:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
+        "F:\\Program Files\\Steam\\steamapps\\common\\Just Cause 3",
+        "C:\\Program Files\\Epic Games\\JustCause3",
+        "C:\\Program Files (x86)\\Epic Games\\JustCause3",
+        "D:\\Epic Games\\JustCause3",
+        "E:\\Epic Games\\JustCause3",
+        "F:\\Epic Games\\JustCause3",
+    ];
+    
+    // 检查常见路径
+    for path in common_paths {
+        if Path::new(path).exists() {
+            jc3_paths.push(path.to_string());
+        }
+    }
+    
+    // 如果没有找到，尝试扫描注册表（Windows）
+    if jc3_paths.is_empty() {
+        if let Ok(registry_path) = scan_registry_for_jc3() {
+            jc3_paths.push(registry_path);
+        }
+    }
+    
+    Ok(jc3_paths)
+}
+
+#[cfg(target_os = "windows")]
+fn scan_registry_for_jc3() -> Result<String, String> {
+    use winreg::enums::*;
+    use winreg::RegKey;
+    
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    
+    // 尝试Steam注册表路径
+    if let Ok(steam_key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 225540") {
+        if let Ok(install_location) = steam_key.get_value::<String, _>("InstallLocation") {
+            return Ok(install_location);
+        }
+    }
+    
+    // 尝试Epic Games注册表路径
+    if let Ok(epic_key) = hklm.open_subkey("SOFTWARE\\WOW6432Node\\Epic Games\\EpicGamesLauncher\\Apps\\JustCause3") {
+        if let Ok(install_location) = epic_key.get_value::<String, _>("InstallLocation") {
+            return Ok(install_location);
+        }
+    }
+    
+    Err("未在注册表中找到正当防卫3安装路径".to_string())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn scan_registry_for_jc3() -> Result<String, String> {
+    Err("非Windows系统不支持注册表扫描".to_string())
+}
+
+#[tauri::command]
+fn get_jc3_mod_info(game_path: String) -> Result<serde_json::Value, String> {
+    let jc3_path = PathBuf::from(&game_path);
+    
+    if !jc3_path.exists() {
+        return Err("正当防卫3路径不存在".to_string());
+    }
+    
+    let mut mod_info = serde_json::json!({
+        "game_name": "Just Cause 3",
+        "game_path": game_path,
+        "mod_folders": [],
+    });
+    
+    // 检查常见的模组文件夹
+    let mod_folders = vec![];
+    
+    let mut existing_folders = Vec::new();
+    for folder in mod_folders {
+        let folder_path = jc3_path.join(folder);
         if folder_path.exists() {
             existing_folders.push(folder);
         }
@@ -254,7 +331,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![
+        .invoke_handler(tauri::generate_handler!(
             greet,
             get_app_dir,
             scan_directory,
@@ -266,8 +343,10 @@ pub fn run() {
             write_file,
             read_file,
             scan_gta4_path,
-            get_gta4_mod_info
-        ])
+            get_gta4_mod_info,
+            scan_jc3_path,
+            get_jc3_mod_info
+        ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

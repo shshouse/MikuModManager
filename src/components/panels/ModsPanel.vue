@@ -32,10 +32,14 @@ const errors = ref({
 })
 const isLoading = ref(false)
 
-// GTA4 相关状态
+// 支持的游戏状态
 const gta4Status = ref<'idle' | 'scanning' | 'found' | 'not-found'>('idle')
 const gta4Path = ref('')
 const gta4ModInfo = ref<any>(null)
+
+const jc3Status = ref<'idle' | 'scanning' | 'found' | 'not-found'>('idle')
+const jc3Path = ref('')
+const jc3ModInfo = ref<any>(null)
 
 const isFormValid = computed(() => {
   return newGame.value.name.trim() && 
@@ -290,10 +294,61 @@ function openGTA4ModManager() {
   }
 }
 
-// 组件挂载时自动扫描GTA4和加载游戏
+// 正当防卫3相关函数
+async function scanJC3() {
+  jc3Status.value = 'scanning'
+  try {
+    const paths = await invoke('scan_jc3_path') as string[]
+    if (paths.length > 0) {
+      jc3Path.value = paths[0]
+      jc3Status.value = 'found'
+      
+      // 获取正当防卫3模组信息
+      try {
+        jc3ModInfo.value = await invoke('get_jc3_mod_info', { gamePath: paths[0] })
+      } catch (error) {
+        console.error('Failed to get JC3 mod info:', error)
+      }
+    } else {
+      jc3Status.value = 'not-found'
+    }
+  } catch (error) {
+    console.error('Failed to scan JC3 path:', error)
+    jc3Status.value = 'not-found'
+  }
+}
+
+function openJC3ModManager() {
+  if (jc3Path.value) {
+    // 创建一个临时的正当防卫3游戏对象并导航到游戏详情页面
+    const jc3Game: CustomGame = {
+      id: 'jc3-special',
+      name: 'Just Cause 3',
+      directory: jc3Path.value,
+      lastPlayed: undefined,
+      playTime: 0
+    }
+    
+    // 将正当防卫3添加到游戏列表（如果不存在）
+    const existingJC3 = games.value.find((g: any) => g.id === 'jc3-special')
+    if (!existingJC3) {
+      games.value.unshift(jc3Game)
+      saveGames()
+    } else {
+      // 更新现有正当防卫3游戏的路径，确保始终使用正确的路径
+      existingJC3.directory = jc3Path.value
+      saveGames()
+    }
+    
+    navigateToGame('jc3-special')
+  }
+}
+
+// 组件挂载时自动扫描支持的游戏和加载游戏
 onMounted(() => {
   loadGames()
   scanGTA4()
+  scanJC3()
 })
 </script>
 
@@ -312,21 +367,43 @@ onMounted(() => {
     <div class="module-section">
       <h2>特别支持游戏</h2>
       <div class="supported-games-content">
-        <div class="game-card gta4-card" @click="scanGTA4">
-          <div class="game-info">
-            <h3>GTAIV</h3>
-            <p v-if="gta4Status === 'scanning'">正在扫描安装路径...</p>
-            <p v-else-if="gta4Status === 'found'" class="game-directory">已找到游戏: {{ gta4Path }}</p>
-            <p v-else-if="gta4Status === 'not-found'">未找到游戏安装路径</p>
-            <p v-else>点击扫描游戏安装路径</p>
+        <div class="game-cards-container">
+          <!-- GTA4 游戏卡片 -->
+          <div class="game-card gta4-card" @click="scanGTA4">
+            <div class="game-info">
+              <h3>GTAIV</h3>
+              <p v-if="gta4Status === 'scanning'">正在扫描安装路径...</p>
+              <p v-else-if="gta4Status === 'found'" class="game-directory">已找到游戏: {{ gta4Path }}</p>
+              <p v-else-if="gta4Status === 'not-found'">未找到游戏安装路径</p>
+              <p v-else>点击扫描游戏安装路径</p>
+            </div>
+            <div class="game-actions">
+              <button v-if="gta4Status === 'found'" @click.stop="openGTA4ModManager" class="btn-manage">
+                管理模组
+              </button>
+              <button @click.stop="scanGTA4" class="btn-secondary" :disabled="gta4Status === 'scanning'">
+                {{ gta4Status === 'scanning' ? '扫描中...' : '重新扫描' }}
+              </button>
+            </div>
           </div>
-          <div class="game-actions">
-            <button v-if="gta4Status === 'found'" @click.stop="openGTA4ModManager" class="btn-manage">
-              管理模组
-            </button>
-            <button @click.stop="scanGTA4" class="btn-secondary" :disabled="gta4Status === 'scanning'">
-              {{ gta4Status === 'scanning' ? '扫描中...' : '重新扫描' }}
-            </button>
+          
+          <!-- 正当防卫3 游戏卡片 -->
+          <div class="game-card jc3-card" @click="scanJC3">
+            <div class="game-info">
+              <h3>Just Cause 3</h3>
+              <p v-if="jc3Status === 'scanning'">正在扫描安装路径...</p>
+              <p v-else-if="jc3Status === 'found'" class="game-directory">已找到游戏: {{ jc3Path }}</p>
+              <p v-else-if="jc3Status === 'not-found'">未找到游戏安装路径</p>
+              <p v-else>点击扫描游戏安装路径</p>
+            </div>
+            <div class="game-actions">
+              <button v-if="jc3Status === 'found'" @click.stop="openJC3ModManager" class="btn-manage">
+                管理模组
+              </button>
+              <button @click.stop="scanJC3" class="btn-secondary" :disabled="jc3Status === 'scanning'">
+                {{ jc3Status === 'scanning' ? '扫描中...' : '重新扫描' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -496,7 +573,13 @@ onMounted(() => {
   padding: 25px;
 }
 
-/* GTA4 游戏卡片样式 */
+.game-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* 游戏卡片样式 */
 .game-card {
   background: white;
   border: 2px solid #e0e0e0;
@@ -521,6 +604,15 @@ onMounted(() => {
 .gta4-card:hover {
   border-color: #d35400;
   box-shadow: 0 4px 12px rgba(211, 84, 0, 0.15);
+}
+
+.jc3-card {
+  border-color: #9b59b6;
+}
+
+.jc3-card:hover {
+  border-color: #8e44ad;
+  box-shadow: 0 4px 12px rgba(142, 68, 173, 0.15);
 }
 
 /* 按钮样式 */
