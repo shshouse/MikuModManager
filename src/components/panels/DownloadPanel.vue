@@ -38,6 +38,15 @@ const availableMods = ref<AvailableMod[]>([
     description: '转载自里昂，配置好可以尝试使用',
     size: '1.47 GB',
     downloadUrl: 'https://pan.quark.cn/s/e1f8cf6cd1b5'
+  },
+  {
+    id: '4',
+    name: '正当防卫3（Just Cause 3）整合包',
+    version: '0.1',
+    author: 'shshouse',
+    description: '包含汉化，十公里钩索，跳过开头动画',
+    size: '20.6 MB',
+    downloadUrl: 'https://pan.quark.cn/s/0e846b35873f'
   }
 ])
 
