@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 
@@ -32,6 +32,11 @@ const errors = ref({
 })
 const isLoading = ref(false)
 
+// GTA4 相关状态
+const gta4Status = ref<'idle' | 'scanning' | 'found' | 'not-found'>('idle')
+const gta4Path = ref('')
+const gta4ModInfo = ref<any>(null)
+
 const isFormValid = computed(() => {
   return newGame.value.name.trim() && 
          newGame.value.directory.trim() && 
@@ -51,7 +56,7 @@ function validateName() {
     errors.value.name = '游戏名称不能为空'
   } else if (name.length < 1) {
     errors.value.name = '游戏名称至少需要1个字符'
-  } else if (games.value.some(g => g.name.toLowerCase() === name.toLowerCase())) {
+  } else if (games.value.some((g: any) => g.name.toLowerCase() === name.toLowerCase())) {
     errors.value.name = '游戏名称已存在'
   } else {
     errors.value.name = ''
@@ -169,13 +174,12 @@ function cancelAdd() {
 }
 
 function removeGame(gameId: string) {
-  const index = games.value.findIndex(g => g.id === gameId)
+  const index = games.value.findIndex((g: any) => g.id === gameId)
   if (index > -1) {
     games.value.splice(index, 1)
     saveGames()
   }
 }
-
 
 function saveGames() {
   // Save to localStorage for persistence
@@ -221,8 +225,76 @@ function formatPlayTime(minutes: number): string {
   return remainingHours > 0 ? `${days}天${remainingHours}小时` : `${days}天`
 }
 
-// Load games on component mount
-loadGames()
+// GTA4 相关函数
+async function scanGTA4() {
+  gta4Status.value = 'scanning'
+  try {
+    const paths = await invoke('scan_gta4_path') as string[]
+    if (paths.length > 0) {
+      gta4Path.value = paths[0]
+      gta4Status.value = 'found'
+      
+      // 获取GTA4模组信息
+      try {
+        gta4ModInfo.value = await invoke('get_gta4_mod_info', { gamePath: paths[0] })
+      } catch (error) {
+        console.error('Failed to get GTA4 mod info:', error)
+      }
+    } else {
+      gta4Status.value = 'not-found'
+    }
+  } catch (error) {
+    console.error('Failed to scan GTA4 path:', error)
+    gta4Status.value = 'not-found'
+  }
+}
+
+function openGTA4ModManager() {
+  if (gta4Path.value) {
+    // 确保路径包含GTAIV子目录
+    let finalPath = gta4Path.value;
+    
+    // 检查路径是否已经包含GTAIV子目录
+    if (!finalPath.endsWith('\\GTAIV') && !finalPath.endsWith('/GTAIV')) {
+      // 检查路径末尾是否有斜杠
+      if (finalPath.endsWith('\\') || finalPath.endsWith('/')) {
+        finalPath += 'GTAIV';
+      } else {
+        // 根据操作系统使用适当的路径分隔符
+        const separator = finalPath.includes('\\') ? '\\' : '/';
+        finalPath += separator + 'GTAIV';
+      }
+    }
+    
+    // 创建一个临时的GTA4游戏对象并导航到游戏详情页面
+    const gta4Game: CustomGame = {
+      id: 'gta4-special',
+      name: 'GTAIV',
+      directory: finalPath,
+      lastPlayed: undefined,
+      playTime: 0
+    }
+    
+    // 将GTA4添加到游戏列表（如果不存在）
+    const existingGTA4 = games.value.find((g: any) => g.id === 'gta4-special')
+    if (!existingGTA4) {
+      games.value.unshift(gta4Game)
+      saveGames()
+    } else {
+      // 更新现有GTA4游戏的路径，确保始终使用正确的路径
+      existingGTA4.directory = finalPath
+      saveGames()
+    }
+    
+    navigateToGame('gta4-special')
+  }
+}
+
+// 组件挂载时自动扫描GTA4和加载游戏
+onMounted(() => {
+  loadGames()
+  scanGTA4()
+})
 </script>
 
 <template>
@@ -240,15 +312,29 @@ loadGames()
     <div class="module-section">
       <h2>特别支持游戏</h2>
       <div class="supported-games-content">
-        <div class="empty-state">
-          <p>特别支持游戏功能即将上线，敬请期待...</p>
+        <div class="game-card gta4-card" @click="scanGTA4">
+          <div class="game-info">
+            <h3>GTAIV</h3>
+            <p v-if="gta4Status === 'scanning'">正在扫描安装路径...</p>
+            <p v-else-if="gta4Status === 'found'" class="game-directory">已找到游戏: {{ gta4Path }}</p>
+            <p v-else-if="gta4Status === 'not-found'">未找到游戏安装路径</p>
+            <p v-else>点击扫描游戏安装路径</p>
+          </div>
+          <div class="game-actions">
+            <button v-if="gta4Status === 'found'" @click.stop="openGTA4ModManager" class="btn-manage">
+              管理模组
+            </button>
+            <button @click.stop="scanGTA4" class="btn-secondary" :disabled="gta4Status === 'scanning'">
+              {{ gta4Status === 'scanning' ? '扫描中...' : '重新扫描' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 自定义游戏模块 -->
     <div class="module-section">
-      <h2>自定义游戏</h2>
+      <h2>游戏列表</h2>
       <div class="custom-games-content">
         <!-- Add Game Dialog -->
         <div v-if="showAddDialog" class="dialog-overlay" @click.self="cancelAdd">
@@ -410,6 +496,33 @@ loadGames()
   padding: 25px;
 }
 
+/* GTA4 游戏卡片样式 */
+.game-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.game-card:hover {
+  border-color: #3498db;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+}
+
+.gta4-card {
+  border-color: #e67e22;
+}
+
+.gta4-card:hover {
+  border-color: #d35400;
+  box-shadow: 0 4px 12px rgba(211, 84, 0, 0.15);
+}
+
 /* 按钮样式 */
 .btn-primary, .btn-secondary, .btn-danger, .btn-launch, .btn-manage {
   padding: 10px 20px;
@@ -439,6 +552,11 @@ loadGames()
   color: white;
 }
 
+.btn-secondary:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
 .btn-danger {
   background-color: #e74c3c;
   color: white;
@@ -448,6 +566,13 @@ loadGames()
 
 .btn-launch {
   background-color: #27ae60;
+  color: white;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.btn-manage {
+  background-color: #3498db;
   color: white;
   padding: 8px 16px;
   font-size: 12px;
@@ -464,7 +589,7 @@ loadGames()
   white-space: nowrap;
 }
 
-.btn-primary:not(:disabled):hover, .btn-secondary:hover, .btn-danger:hover, .btn-launch:hover, .btn-browse:hover {
+.btn-primary:not(:disabled):hover, .btn-secondary:not(:disabled):hover, .btn-danger:hover, .btn-launch:hover, .btn-manage:hover, .btn-browse:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
@@ -545,11 +670,6 @@ loadGames()
   color: #e74c3c;
 }
 
-.optional {
-  color: #7f8c8d;
-  font-weight: normal;
-}
-
 .form-input {
   width: 100%;
   padding: 12px;
@@ -584,13 +704,6 @@ loadGames()
   font-weight: 500;
 }
 
-.help-text {
-  color: #7f8c8d;
-  font-size: 12px;
-  margin-top: 5px;
-  line-height: 1.4;
-}
-
 .dialog-actions {
   display: flex;
   gap: 12px;
@@ -613,11 +726,6 @@ loadGames()
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px dashed #e0e0e0;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
 }
 
 .empty-state h3 {
@@ -645,6 +753,14 @@ loadGames()
 .game-item:hover {
   border-color: #3498db;
   box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+}
+
+.game-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  cursor: pointer;
 }
 
 .game-icon {
