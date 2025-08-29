@@ -488,7 +488,7 @@ function goBack() {
                 <span v-if="isLoading">启动中...</span>
                 <span v-else>启动 正当防卫3</span>
               </button>
-              <small class="launch-help">使用上面设置的启动选项启动游戏</small>
+              <small class="launch-help">学习版使用上面设置的启动选项启动游戏，steam版根据视频在启动选项中添加</small>
             </div>
           </div>
         </div>
