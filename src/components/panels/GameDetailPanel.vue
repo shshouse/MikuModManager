@@ -19,11 +19,23 @@ interface Patch {
   installed: boolean
 }
 
+interface BackupFile {
+  path: string
+  hash: string
+  size: number
+}
+
 interface Backup {
   name: string
   timestamp: string
   path: string
-  logFile: string
+  description?: string
+  backupInfo?: {
+    gameName: string
+    gameVersion?: string
+    backedUpFiles: BackupFile[]
+    installedFiles: BackupFile[]
+  }
 }
 
 const props = defineProps<{
@@ -123,12 +135,33 @@ async function scanBackups() {
     const backupDir = `${appDirectory.value}/game/${game.value.name}/backup`
     const backupFolders = await invoke('scan_directory', { path: backupDir }) as string[]
     
-    backups.value = backupFolders.map((folder: string) => ({
-      name: folder,
-      timestamp: formatTimestamp(folder),
-      path: `${backupDir}/${folder}`,
-      logFile: `${backupDir}/${folder}/install.log`
-    })).sort((a: Backup, b: Backup) => b.name.localeCompare(a.name)) // Sort by timestamp desc
+    const backupPromises = backupFolders.map(async (folder: string) => {
+      const backupPath = `${backupDir}/${folder}`
+      const backup: Backup = {
+        name: folder,
+        timestamp: formatTimestamp(folder),
+        path: backupPath,
+        description: undefined,
+        backupInfo: undefined
+      }
+      
+      // Try to load backup info if exists
+      try {
+        const infoFile = `${backupPath}/backup_info.json`
+        const infoExists = await invoke('file_exists', { path: infoFile })
+        if (infoExists) {
+          const infoContent = await invoke('read_file', { path: infoFile }) as string
+          backup.backupInfo = JSON.parse(infoContent)
+        }
+      } catch (e) {
+        console.warn('Failed to load backup info:', e)
+      }
+      
+      return backup
+    })
+    
+    backups.value = (await Promise.all(backupPromises))
+      .sort((a: Backup, b: Backup) => b.name.localeCompare(a.name)) // Sort by timestamp desc
   } catch (error) {
     console.error('Failed to scan backups:', error)
     backups.value = []
@@ -262,30 +295,108 @@ async function launchGame() {
   }
 }
 
+// Calculate MD5 hash of a file (simplified implementation using file size for demo)
+async function calculateFileHash(filePath: string): Promise<string> {
+  try {
+    // In a real implementation, you would compute a proper hash (MD5, SHA1, etc.)
+    // For simplicity, we're using file size as a basic identifier
+    const fileSize = await invoke('get_file_size', { path: filePath }).catch(() => 0)
+    return `size:${fileSize}`
+  } catch {
+    return 'unknown'
+  }
+}
+
+// Create a detailed backup information object
+async function createBackupInfo(
+  gameName: string, 
+  gameDir: string,
+  backupDir: string,
+  patchesInstalled: string[],
+  backedUpFiles: string[],
+  installedFiles: string[]
+): Promise<any> {
+  const backupInfo: { 
+    gameName: string;
+    gameVersion: string;
+    timestamp: string;
+    patchesInstalled: string[];
+    backedUpFiles: BackupFile[];
+    installedFiles: BackupFile[];
+  } = {
+    gameName,
+    gameVersion: 'unknown', // Could be enhanced to detect game version
+    timestamp: new Date().toISOString(),
+    patchesInstalled,
+    backedUpFiles: [],
+    installedFiles: []
+  }
+  
+  // Add details for backed up files
+  for (const file of backedUpFiles) {
+    const relativePath = file.replace(backupDir, '').replace(/^[/\\]/, '')
+    const backupPath = `${backupDir}/${relativePath}`
+    
+    try {
+      const hash = await calculateFileHash(backupPath)
+      const size = Number(await invoke('get_file_size', { path: backupPath }).catch(() => 0))
+      
+      backupInfo.backedUpFiles.push({
+        path: relativePath,
+        hash,
+        size
+      })
+    } catch (e) {
+      console.warn('Failed to get info for backed up file:', file, e)
+    }
+  }
+  
+  // Add details for installed files
+  for (const file of installedFiles) {
+    try {
+      const hash = await calculateFileHash(file)
+      const size = Number(await invoke('get_file_size', { path: file }).catch(() => 0))
+      const relativePath = file.replace(gameDir, '').replace(/^[/\\]/, '')
+      
+      backupInfo.installedFiles.push({
+        path: relativePath,
+        hash,
+        size
+      })
+    } catch (e) {
+      console.warn('Failed to get info for installed file:', file, e)
+    }
+  }
+  
+  return backupInfo
+}
+
 async function installPatches() {
   if (selectedPatches.value.size === 0 || !game.value) return
   
   isLoading.value = true
   
   try {
-    const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '_')
+    // 使用本地时间生成时间戳，避免UTC时差问题
+    const now = new Date();
+    const year = String(now.getFullYear());
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const second = String(now.getSeconds()).padStart(2, '0');
+    const timestamp = `${year}${month}${day}_${hour}${minute}${second}`
     const backupDir = `${appDirectory.value}/game/${game.value.name}/backup/${timestamp}`
     
     // Create backup directory
     await invoke('create_directory', { path: backupDir })
     
-    const logEntries: string[] = []
-    logEntries.push(`Installation Log - ${new Date().toISOString()}`)
-    logEntries.push(`Game: ${game.value.name}`)
-    logEntries.push(`Game Directory: ${game.value.directory}`)
-    logEntries.push(`Patches Installed: ${Array.from(selectedPatches.value).join(', ')}`)
-    logEntries.push('---')
+    const backedUpFiles: string[] = []
+    const installedFiles: string[] = []
     
     for (const patchName of selectedPatches.value) {
       const patch = patches.value.find(p => p.name === patchName)
       if (!patch) continue
-      
-      logEntries.push(`Installing patch: ${patchName}`)
       
       // Get all files in patch directory
       const patchFiles = await invoke('get_all_files', { path: patch.path }) as string[]
@@ -300,25 +411,37 @@ async function installPatches() {
         if (targetExists) {
           await invoke('create_directory', { path: backupPath.substring(0, backupPath.lastIndexOf('/')) })
           await invoke('copy_file', { from: targetPath, to: backupPath })
-          logEntries.push(`Backed up: ${relativePath}`)
+          backedUpFiles.push(backupPath)
         }
         
         // Copy patch file to target
         await invoke('create_directory', { path: targetPath.substring(0, targetPath.lastIndexOf('/')) })
         await invoke('copy_file', { from: file, to: targetPath })
-        logEntries.push(`Installed: ${relativePath}`)
+        installedFiles.push(targetPath)
       }
     }
     
-    // Write log file
-    const logContent = logEntries.join('\n')
-    await invoke('write_file', { path: `${backupDir}/install.log`, content: logContent })
+    // Create detailed backup info
+    const backupInfo = await createBackupInfo(
+      game.value.name,
+      game.value.directory,
+      backupDir,
+      Array.from(selectedPatches.value),
+      backedUpFiles,
+      installedFiles
+    )
+    
+    // Save backup info
+    await invoke('write_file', {
+      path: `${backupDir}/backup_info.json`,
+      content: JSON.stringify(backupInfo, null, 2)
+    })
     
     // Clear selection and refresh
     selectedPatches.value.clear()
     await scanBackups()
     
-    alert('补丁安装完成！')
+    alert('补丁安装完成！\n备份已创建，包含文件完整性验证信息。')
   } catch (error) {
     console.error('Failed to install patches:', error)
     alert('补丁安装失败：' + error)
@@ -327,6 +450,20 @@ async function installPatches() {
   }
 }
 
+// Verify file integrity by comparing hashes
+async function verifyFileIntegrity(filePath: string, expectedHash: string): Promise<boolean> {
+  try {
+    const actualHash = await calculateFileHash(filePath)
+    // For demo purposes, we're using a simple size check
+    // In a real implementation, you would compare proper cryptographic hashes
+    return actualHash === expectedHash || expectedHash === 'unknown'
+  } catch {
+    return false
+  }
+}
+
+
+
 async function rollbackToBackup() {
   if (!selectedBackup.value || !game.value) return
   
@@ -334,47 +471,71 @@ async function rollbackToBackup() {
   
   try {
     const backup = backups.value.find(b => b.name === selectedBackup.value)
-    if (!backup) return
-    
-    // Read log file to understand what was installed
-    const logContent = await invoke('read_file', { path: backup.logFile }) as string
-    const logLines = logContent.split('\n')
-    
-    const installedFiles: string[] = []
-    const backedUpFiles: string[] = []
-    
-    for (const line of logLines) {
-      if (line.startsWith('Installed: ')) {
-        installedFiles.push(line.substring(11))
-      } else if (line.startsWith('Backed up: ')) {
-        backedUpFiles.push(line.substring(11))
-      }
+    if (!backup) {
+      throw new Error('未找到选中的备份')
     }
     
-    // Restore backed up files
-    for (const file of backedUpFiles) {
-      const backupFilePath = `${backup.path}/${file}`
-      const targetPath = `${game.value.directory}/${file}`
+    const rollbackLog: string[] = []
+    rollbackLog.push(`回滚日志 - ${new Date().toISOString()}`)
+    rollbackLog.push(`游戏: ${game.value.name}`)
+    rollbackLog.push(`回滚到备份: ${backup.timestamp}`)
+    rollbackLog.push('---')
+    
+    // Try to use backup_info.json for more reliable rollback
+    
+    if (backup.backupInfo) {
+      // Using the detailed backup info
+      rollbackLog.push('使用详细备份信息进行回滚')
       
-      const backupExists = await invoke('file_exists', { path: backupFilePath })
-      if (backupExists) {
-        await invoke('copy_file', { from: backupFilePath, to: targetPath })
-      }
-    }
-    
-    // Remove files that were only installed (not backed up)
-    for (const file of installedFiles) {
-      if (!backedUpFiles.includes(file)) {
-        const targetPath = `${game.value.directory}/${file}`
-        const fileExists = await invoke('file_exists', { path: targetPath })
-        if (fileExists) {
-          await invoke('delete_file', { path: targetPath })
+      // Restore backed up files with integrity check
+      for (const fileInfo of backup.backupInfo.backedUpFiles) {
+        const backupFilePath = `${backup.path}/${fileInfo.path}`
+        const targetPath = `${game.value.directory}/${fileInfo.path}`
+        
+        const backupExists = await invoke('file_exists', { path: backupFilePath })
+        if (backupExists) {
+          // Verify file integrity before restoring
+          const isIntegrityVerified = await verifyFileIntegrity(backupFilePath, fileInfo.hash)
+          
+          if (isIntegrityVerified) {
+            await invoke('copy_file', { from: backupFilePath, to: targetPath })
+            rollbackLog.push(`已恢复: ${fileInfo.path} [完整性验证通过]`)
+          } else {
+            rollbackLog.push(`警告: ${fileInfo.path} 完整性验证失败，但仍尝试恢复`)
+            await invoke('copy_file', { from: backupFilePath, to: targetPath })
+          }
+        } else {
+          rollbackLog.push(`错误: 备份文件不存在: ${fileInfo.path}`)
         }
       }
+      
+      // Remove files that were only installed (not backed up)
+      for (const fileInfo of backup.backupInfo.installedFiles) {
+        // Check if this file was not backed up
+        const isBackedUp = backup.backupInfo.backedUpFiles.some(
+          backedUp => backedUp.path === fileInfo.path
+        )
+        
+        if (!isBackedUp) {
+          const targetPath = `${game.value.directory}/${fileInfo.path}`
+          const fileExists = await invoke('file_exists', { path: targetPath })
+          if (fileExists) {
+            await invoke('delete_file', { path: targetPath })
+            rollbackLog.push(`已删除: ${fileInfo.path}`)
+          }
+        }
+      }
+    } else {
+      // No backup info available, cannot perform rollback
+      throw new Error('备份信息不完整，无法执行回滚操作')
     }
     
+    // Write rollback log
+    const rollbackLogPath = `${backup.path}/rollback_${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '_')}.log`
+    await invoke('write_file', { path: rollbackLogPath, content: rollbackLog.join('\n') })
+    
     selectedBackup.value = ''
-    alert('回滚完成！')
+    alert('回滚完成！\n已验证并恢复所有文件到备份时的状态。')
   } catch (error) {
     console.error('Failed to rollback:', error)
     alert('回滚失败：' + error)

@@ -89,6 +89,12 @@ fn file_exists(path: String) -> bool {
 }
 
 #[tauri::command]
+fn get_file_size(path: String) -> Result<u64, String> {
+    let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
+    Ok(metadata.len())
+}
+
+#[tauri::command]
 fn copy_file(from: String, to: String) -> Result<(), String> {
     // Create parent directory if it doesn't exist
     if let Some(parent) = Path::new(&to).parent() {
@@ -361,6 +367,7 @@ pub fn run() {
             get_all_files,
             create_directory,
             file_exists,
+            get_file_size,
             copy_file,
             delete_file,
             write_file,
