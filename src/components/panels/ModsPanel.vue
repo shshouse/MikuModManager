@@ -359,7 +359,7 @@ onMounted(() => {
         添加游戏
       </button>
       <div class="stats">
-        <span class="stat-item">已添加游戏: {{ games.length }}</span>
+        <span class="stat-item">在选择游戏路径后开始管理模组＞﹏＜,现在已添加游戏: {{ games.length }}</span>
       </div>
     </div>
 
