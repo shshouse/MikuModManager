@@ -81,73 +81,73 @@ function openLink(url: string) {
 </template>
 
 <style scoped>
-.about-panel {
   max-width: 600px;
-}
-
-.app-info-card {
+  max-width: 600px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   background: white;
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   margin-bottom: 30px;
-  display: flex;
+
   gap: 20px;
   align-items: flex-start;
-}
-
-.app-icon {
-  flex-shrink: 0;
-}
-
-.icon-placeholder {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
   color: white;
 }
 
 .app-details h2 {
   margin: 0 0 5px 0;
+  width: 80px;
+  height: 80px;
+}
+  border-radius: 16px;
+.version {
+  color: #7f8c8d;
+  margin: 0 0 10px 0;
+  font-size: 32px;
+}
+}
+
+  display: flex;
+  margin: 0 0 5px 0;
   color: #2c3e50;
   font-size: 24px;
 }
 
-.version {
+.links-section, .credits-section {
   color: #7f8c8d;
   margin: 0 0 10px 0;
   font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.description {
-  color: #34495e;
+.links-section h3, .credits-section h3 {
   margin: 0 0 20px 0;
   line-height: 1.5;
 }
 
-.info-grid {
+  display: grid;
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
 
-.info-item {
-  display: flex;
+.link-button {
+  padding: 10px 15px;
+  background-color: #ecf0f1;
   gap: 10px;
-}
 
-.label {
-  color: #7f8c8d;
+.credits-section p {
+  color: #34495e;
+  line-height: 1.5;
   min-width: 80px;
   font-size: 14px;
-}
-
-.value {
+  text-align: center;
+  padding: 20px;
+  color: #7f8c8d;
   color: #2c3e50;
   font-size: 14px;
 }
@@ -155,54 +155,3 @@ function openLink(url: string) {
 .btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-.links-section, .credits-section {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.links-section h3, .credits-section h3 {
-  margin: 0 0 15px 0;
-  color: #2c3e50;
-  font-size: 18px;
-}
-
-.links-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-}
-
-.link-button {
-  padding: 10px 15px;
-  background-color: #ecf0f1;
-  color: #2c3e50;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.link-button:hover {
-  background-color: #d5dbdb;
-  transform: translateY(-1px);
-}
-
-.credits-section p {
-  color: #34495e;
-  line-height: 1.5;
-  margin: 0 0 10px 0;
-}
-
-.copyright {
-  text-align: center;
-  padding: 20px;
-  color: #7f8c8d;
-  font-size: 12px;
-}
-</style>
