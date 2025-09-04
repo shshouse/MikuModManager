@@ -1,13 +1,15 @@
 {
   "name": "MikuModManager",
   "private": true,
-  "version": "0.1.2",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && node scripts/sync-version.js && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "sync-version": "node scripts/sync-version.js",
+    "bump-version": "node -e \"const fs=require('fs'),path=require('path');const v=JSON.parse(fs.readFileSync(path.join(__dirname,'version.json'),'utf8'));const p=v.version.split('.');p[2]=(parseInt(p[2])+1).toString();v.version=p.join('.');fs.writeFileSync(path.join(__dirname,'version.json'),JSON.stringify(v,null,2));console.log('版本已更新为:',v.version);\" && node scripts/sync-version.js"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
