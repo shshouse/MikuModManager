@@ -18,10 +18,10 @@ async function openInBrowser() {
   }
 }
 
-onMounted(() => {
-  // 组件挂载后自动打开网站
-  openInBrowser()
-})
+// onMounted(() => {
+//   // 组件挂载后自动打开网站
+//   openInBrowser()
+// })
 </script>
 
 <template>
@@ -37,7 +37,7 @@ onMounted(() => {
         </div>
         
         <div class="browser-text">
-          <h3>正在打开MikuMod</h3>
+          <h3>点击下方按钮前往MikuMod获取您需要的模组~</h3>
           <p>MikuMod将在您的默认浏览器中打开</p>
           <p class="website-url">{{ websiteUrl }}</p>
         </div>
@@ -46,8 +46,6 @@ onMounted(() => {
           <button @click="openInBrowser" :disabled="isOpening" class="btn-open-browser">
             {{ isOpening ? '正在打开...' : '进入MikuMod' }}
           </button>
-          
-          <p class="browser-tip">如果浏览器没有自动打开，请点击上面的按钮</p>
         </div>
       </div>
     </div>
@@ -125,11 +123,5 @@ onMounted(() => {
 .btn-open-browser:disabled {
   background-color: #bdc3c7;
   cursor: not-allowed;
-}
-
-.browser-tip {
-  color: #95a5a6;
-  font-size: 12px;
-  margin: 0;
 }
 </style>
