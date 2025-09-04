@@ -81,77 +81,104 @@ function openLink(url: string) {
 </template>
 
 <style scoped>
+.about-panel {
   max-width: 600px;
-  max-width: 600px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   background: white;
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   margin-bottom: 30px;
+}
 
+.app-info-card {
+  display: flex;
   gap: 20px;
   align-items: flex-start;
-  align-items: center;
-  justify-content: center;
-  color: white;
+  margin-bottom: 30px;
 }
 
 .app-details h2 {
-  margin: 0 0 5px 0;
-  width: 80px;
-  height: 80px;
-}
-  border-radius: 16px;
-.version {
-  color: #7f8c8d;
-  margin: 0 0 10px 0;
-  font-size: 32px;
-}
-}
-
-  display: flex;
   margin: 0 0 5px 0;
   color: #2c3e50;
   font-size: 24px;
 }
 
-.links-section, .credits-section {
+.version {
   color: #7f8c8d;
   margin: 0 0 10px 0;
   font-size: 14px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.links-section h3, .credits-section h3 {
-  margin: 0 0 20px 0;
-  line-height: 1.5;
-}
-
-  display: grid;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-.link-button {
-  padding: 10px 15px;
-  background-color: #ecf0f1;
-  gap: 10px;
-
-.credits-section p {
+.description {
   color: #34495e;
   line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.info-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  gap: 10px;
+}
+
+.label {
+  color: #7f8c8d;
   min-width: 80px;
   font-size: 14px;
-  text-align: center;
-  padding: 20px;
-  color: #7f8c8d;
+}
+
+.value {
   color: #2c3e50;
   font-size: 14px;
 }
 
-.btn-primary:hover {
+.links-section, .credits-section {
+  margin-bottom: 30px;
+}
+
+.links-section h3, .credits-section h3 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.links-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.link-button {
+  padding: 10px 15px;
+  background-color: #ecf0f1;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #2c3e50;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.link-button:hover {
+  background-color: #d5dbdb;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.credits-section p {
+  color: #7f8c8d;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.copyright {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 12px;
+  margin-top: 30px;
+}
+</style>
