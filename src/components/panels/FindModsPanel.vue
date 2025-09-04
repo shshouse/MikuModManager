@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { open } from '@tauri-apps/plugin-shell'
 
 const websiteUrl = 'https://mikumod.shshouse.icu'
