@@ -3,8 +3,8 @@ import { ref } from 'vue'
 import ModsPanel from './panels/ModsPanel.vue'
 import GameDetailPanel from './panels/GameDetailPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
-
 import AboutPanel from './panels/AboutPanel.vue'
+import FindModsPanel from './panels/FindModsPanel.vue'
 
 const props = defineProps<{
   activeTab: string
@@ -19,10 +19,10 @@ function getTitle(): string {
   }
   
   const titles: Record<string, string> = {
-    mods: '游戏管理',
-    download: '下载(网盘)',
-    about: '关于'
-
+    'find-mods': '找模组',
+    'mods': '游戏管理',
+    'download': '下载(网盘)',
+    'about': '关于'
   }
   return titles[props.activeTab] || '未知页面'
 }
@@ -45,8 +45,9 @@ function handleBackToMods() {
     </div>
     
     <div class="content-body">
+      <FindModsPanel v-if="activeTab === 'find-mods'" />
       <GameDetailPanel 
-        v-if="activeTab === 'mods' && showGameDetail" 
+        v-else-if="activeTab === 'mods' && showGameDetail" 
         :game-id="currentGameId"
         @back="handleBackToMods"
       />

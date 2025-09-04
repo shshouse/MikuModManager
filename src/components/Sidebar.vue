@@ -14,7 +14,8 @@ const emit = defineEmits<{
 }>()
 
 const menuItems: MenuItem[] = [
-  { id: 'mods', label: '游戏管理', icon: '' },
+  { id: 'find-mods', label: '找模组', icon: '' },
+  { id: 'mods', label: '模组管理', icon: '' },
   { id: 'download', label: '下载中心', icon: '' },
   { id: 'about', label: '关于', icon: '' }
 ]
