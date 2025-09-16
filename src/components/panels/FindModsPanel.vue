@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { open } from '@tauri-apps/plugin-shell'
+import { invoke } from '@tauri-apps/api/core'
 
 const websiteUrl = 'https://mikumod.shshouse.icu'
 const isOpening = ref(false)
@@ -8,11 +8,11 @@ const isOpening = ref(false)
 async function openInBrowser() {
   try {
     isOpening.value = true
-    await open(websiteUrl)
+    // 使用Tauri的Webview API打开默认浏览器
+    await invoke('open_url_in_browser', { url: websiteUrl })
   } catch (error) {
     console.error('Failed to open browser:', error)
-    // 备用方案：使用window.open
-    window.open(websiteUrl, '_blank')
+    // 如果Tauri方法失败，可以尝试其他方式
   } finally {
     isOpening.value = false
   }
