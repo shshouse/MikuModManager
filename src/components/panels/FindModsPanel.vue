@@ -19,7 +19,7 @@ async function openInBrowser() {
 }
 
 // onMounted(() => {
-//   // 组件挂载后自动打开网站
+//   // 组件挂载后自动打开网站，一般不开，不然体验太差了
 //   openInBrowser()
 // })
 </script>
