@@ -2,6 +2,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -355,6 +358,39 @@ fn find_game_executable(game_dir: &Path) -> Result<PathBuf, String> {
     Err("未找到游戏可执行文件".to_string())
 }
 
+#[tauri::command]
+fn open_url_in_browser(url: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        // 在Windows上使用start命令打开默认浏览器
+        Command::new("cmd")
+            .args(["/c", "start", &url])
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .spawn()
+            .map_err(|e| format!("Failed to open browser: {}", e))?;
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        // 在macOS上使用open命令
+        Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Failed to open browser: {}", e))?;
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        // 在Linux上使用xdg-open命令
+        Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Failed to open browser: {}", e))?;
+    }
+    
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -376,7 +412,8 @@ pub fn run() {
             get_gta4_mod_info,
             scan_jc3_path,
             get_jc3_mod_info,
-            launch_game
+            launch_game,
+            open_url_in_browser
         ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
