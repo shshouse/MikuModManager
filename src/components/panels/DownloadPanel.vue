@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 
 interface AvailableMod {
   id: string
@@ -51,11 +52,21 @@ const availableMods = ref<AvailableMod[]>([
 ])
 
 const searchQuery = ref('')
+const isOpening = ref<{[key: string]: boolean}>({})
 
-function downloadMod(modId: string) {
+async function downloadMod(modId: string) {
   const mod = availableMods.value.find(m => m.id === modId);
   if (mod && mod.downloadUrl) {
-    window.open(mod.downloadUrl, '_blank');
+    try {
+      isOpening.value[modId] = true
+      // 使用Tauri的Webview API打开默认浏览器
+      await invoke('open_url_in_browser', { url: mod.downloadUrl })
+    } catch (error) {
+      console.error('Failed to open browser:', error)
+      // 如果Tauri方法失败，可以尝试其他方式
+    } finally {
+      isOpening.value[modId] = false
+    }
   } else {
     console.log('Downloading mod:', modId);
   }
@@ -116,8 +127,8 @@ function filteredMods() {
         
 
         
-        <button @click="downloadMod(mod.id)" class="btn-download">
-          下载模组
+        <button @click="downloadMod(mod.id)" :disabled="isOpening[mod.id]" class="btn-download">
+          {{ isOpening[mod.id] ? '正在打开...' : '下载模组' }}
         </button>
       </div>
     </div>
