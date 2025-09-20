@@ -31,9 +31,6 @@
     },
     "shell": {
       "open": true
-    },
-    "dialog": {
-      "defaultPath": null
     }
   },
   "bundle": {
