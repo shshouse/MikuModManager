@@ -163,6 +163,18 @@ async function addGame() {
         await invoke('create_directory', { path: backupDir })
         console.log('Created backup directory:', backupDir)
       }
+      
+      // Create game_status.json file
+      try {
+        await invoke('create_game_status', {
+          gameName: game.name,
+          gamePath: game.directory,
+          launchOptions: ''
+        })
+        console.log('Created game_status.json for:', game.name)
+      } catch (error) {
+        console.error('Failed to create game_status.json:', error)
+      }
     } catch (error) {
       console.error('Failed to create game directory structure:', error)
     }
@@ -345,10 +357,34 @@ function openJC3ModManager() {
 }
 
 // 组件挂载时自动扫描支持的游戏和加载游戏
-onMounted(() => {
+onMounted(async () => {
   loadGames()
   scanGTA4()
   scanJC3()
+  
+  // 扫描并创建缺失的game_status.json文件
+  try {
+    const appDirectory = await invoke('get_app_dir')
+    const gamesWithoutStatus = await invoke('scan_games_for_status', { 
+      appDir: appDirectory 
+    }) as string[]
+    
+    for (const gamePath of gamesWithoutStatus) {
+      try {
+        const gameName = gamePath.split(/[/\\]/).pop() || 'Unknown Game'
+        await invoke('create_game_status', {
+          gameName: gameName,
+          gamePath: gamePath,
+          launchOptions: ''
+        })
+        console.log('Created missing game_status.json for:', gameName)
+      } catch (error) {
+        console.error('Failed to create game_status.json for', gamePath, ':', error)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to scan for missing game status files:', error)
+  }
 })
 </script>
 

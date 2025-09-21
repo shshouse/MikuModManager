@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use serde::{Deserialize, Serialize};
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -273,6 +274,138 @@ fn scan_registry_for_jc3() -> Result<String, String> {
     Err("非Windows系统不支持注册表扫描".to_string())
 }
 
+// GameStatus 结构体定义
+#[derive(Debug, Serialize, Deserialize)]
+struct GameStatus {
+    game_name: String,
+    game_path: String,
+    launch_options: String,
+    installed_mods: Vec<String>,
+    last_updated: String,
+}
+
+#[tauri::command]
+fn create_game_status(
+    game_name: String,
+    game_path: String,
+    launch_options: String,
+) -> Result<String, String> {
+    let status = GameStatus {
+        game_name,
+        game_path: game_path.clone(),
+        launch_options,
+        installed_mods: Vec::new(),
+        last_updated: chrono::Local::now().to_rfc3339(),
+    };
+    
+    let status_path = PathBuf::from(&game_path).join("game_status.json");
+    
+    match serde_json::to_string_pretty(&status) {
+        Ok(content) => {
+            match fs::write(&status_path, content) {
+                Ok(_) => Ok(status_path.to_string_lossy().to_string()),
+                Err(e) => Err(format!("Failed to write game status: {}", e)),
+            }
+        }
+        Err(e) => Err(format!("Failed to serialize game status: {}", e)),
+    }
+}
+
+#[tauri::command]
+fn read_game_status(game_path: String) -> Result<String, String> {
+    let status_path = PathBuf::from(&game_path).join("game_status.json");
+    
+    if !status_path.exists() {
+        return Err("game_status.json not found".to_string());
+    }
+    
+    match fs::read_to_string(&status_path) {
+        Ok(content) => Ok(content),
+        Err(e) => Err(format!("Failed to read game status: {}", e)),
+    }
+}
+
+#[tauri::command]
+fn update_game_status(
+    game_path: String,
+    launch_options: Option<String>,
+    installed_mods: Option<Vec<String>>,
+) -> Result<String, String> {
+    let status_path = PathBuf::from(&game_path).join("game_status.json");
+    
+    // 读取现有状态
+    let mut status: GameStatus = if status_path.exists() {
+        let content = fs::read_to_string(&status_path)
+            .map_err(|e| format!("Failed to read existing status: {}", e))?;
+        serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse existing status: {}", e))?
+    } else {
+        // 如果文件不存在，创建新的状态
+        GameStatus {
+            game_name: PathBuf::from(&game_path)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
+            game_path: game_path.clone(),
+            launch_options: String::new(),
+            installed_mods: Vec::new(),
+            last_updated: chrono::Local::now().to_rfc3339(),
+        }
+    };
+    
+    // 更新字段
+    if let Some(options) = launch_options {
+        status.launch_options = options;
+    }
+    
+    if let Some(mods) = installed_mods {
+        status.installed_mods = mods;
+    }
+    
+    status.last_updated = chrono::Local::now().to_rfc3339();
+    
+    // 写回文件
+    match serde_json::to_string_pretty(&status) {
+        Ok(content) => {
+            match fs::write(&status_path, content) {
+                Ok(_) => Ok("Game status updated successfully".to_string()),
+                Err(e) => Err(format!("Failed to write updated status: {}", e)),
+            }
+        }
+        Err(e) => Err(format!("Failed to serialize updated status: {}", e)),
+    }
+}
+
+#[tauri::command]
+fn scan_games_for_status(app_dir: String) -> Result<Vec<String>, String> {
+    let games_dir = PathBuf::from(&app_dir).join("game");
+    
+    if !games_dir.exists() {
+        return Ok(Vec::new());
+    }
+    
+    let mut games_without_status = Vec::new();
+    
+    match fs::read_dir(&games_dir) {
+        Ok(entries) => {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let game_path = entry.path();
+                    if game_path.is_dir() {
+                        let status_path = game_path.join("game_status.json");
+                        if !status_path.exists() {
+                            games_without_status.push(game_path.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+            Ok(games_without_status)
+        }
+        Err(e) => Err(format!("Failed to scan games directory: {}", e)),
+    }
+}
+
 #[tauri::command]
 fn get_jc3_mod_info(game_path: String) -> Result<serde_json::Value, String> {
     let jc3_path = PathBuf::from(&game_path);
@@ -413,7 +546,11 @@ pub fn run() {
             scan_jc3_path,
             get_jc3_mod_info,
             launch_game,
-            open_url_in_browser
+            open_url_in_browser,
+            create_game_status,
+            read_game_status,
+            update_game_status,
+            scan_games_for_status
         ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
