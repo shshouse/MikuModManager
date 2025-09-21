@@ -97,11 +97,33 @@ async function loadGame() {
       game.value = games.find(g => g.id === props.gameId) || null
       if (game.value) {
         newGameDirectory.value = game.value.directory
-        // 加载启动选项，如果是JC3则设置默认值
-        if (props.gameId === 'jc3-special') {
-          launchOptions.value = game.value.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
-        } else {
-          launchOptions.value = game.value.launchOptions || ''
+        
+        // 尝试从game_status.json加载启动选项
+        try {
+          const gameStatus = await invoke('read_game_status', { 
+            gameName: game.value.name 
+          }) as any
+          
+          if (gameStatus && gameStatus.launchOptions) {
+            game.value.launchOptions = gameStatus.launchOptions
+            launchOptions.value = gameStatus.launchOptions
+            console.log('Loaded launch options from game_status.json for:', game.value.name)
+          } else {
+            // 如果没有从game_status.json加载到，使用localStorage中的值
+            if (props.gameId === 'jc3-special') {
+              launchOptions.value = game.value.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
+            } else {
+              launchOptions.value = game.value.launchOptions || ''
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load game_status.json, using localStorage:', error)
+          // 如果读取失败，使用localStorage中的值
+          if (props.gameId === 'jc3-special') {
+            launchOptions.value = game.value.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
+          } else {
+            launchOptions.value = game.value.launchOptions || ''
+          }
         }
       }
     }
@@ -251,6 +273,17 @@ async function saveLaunchOptions() {
         games[index] = game.value
         localStorage.setItem('customGames', JSON.stringify(games))
       }
+    }
+    
+    // Update in game_status.json
+    try {
+      await invoke('update_game_status', {
+        gameName: game.value.name,
+        launchOptions: game.value.launchOptions
+      })
+      console.log('Updated launch options in game_status.json for:', game.value.name)
+    } catch (error) {
+      console.error('Failed to update game_status.json:', error)
     }
     
     isEditingLaunchOptions.value = false
