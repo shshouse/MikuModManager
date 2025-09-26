@@ -5,6 +5,8 @@ import GameDetailPanel from './panels/GameDetailPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
 import AboutPanel from './panels/AboutPanel.vue'
 import FindModsPanel from './panels/FindModsPanel.vue'
+// Remove unused import
+// import ToolsPanel from './panels/ToolsPanel.vue'
 
 const props = defineProps<{
   activeTab: string
@@ -21,6 +23,7 @@ function getTitle(): string {
   const titles: Record<string, string> = {
     'find-mods': '找模组',
     'mods': '游戏管理',
+    'tools': '小工具',
     'download': '下载(网盘)',
     'about': '关于'
   }
