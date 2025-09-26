@@ -18,6 +18,7 @@ interface CustomGame {
   icon?: string
   lastPlayed?: Date
   playTime?: number
+  launchOptions?: string
 }
 
 const games = ref<CustomGame[]>([])
@@ -118,7 +119,8 @@ async function addGame() {
       name: newGame.value.name.trim(),
       directory: newGame.value.directory.trim(),
       lastPlayed: undefined,
-      playTime: 0
+      playTime: 0,
+      launchOptions: '' // 初始化启动选项为空字符串
     }
     
     games.value.push(game)
@@ -338,7 +340,8 @@ function openJC3ModManager() {
       name: 'Just Cause 3',
       directory: jc3Path.value,
       lastPlayed: undefined,
-      playTime: 0
+      playTime: 0,
+      launchOptions: '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs' // 为Just Cause 3设置默认启动选项
     }
     
     // 将正当防卫3添加到游戏列表（如果不存在）

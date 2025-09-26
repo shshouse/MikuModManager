@@ -110,20 +110,12 @@ async function loadGame() {
             console.log('Loaded launch options from game_status.json for:', game.value.name)
           } else {
             // 如果没有从game_status.json加载到，使用localStorage中的值
-            if (props.gameId === 'jc3-special') {
-              launchOptions.value = game.value.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
-            } else {
-              launchOptions.value = game.value.launchOptions || ''
-            }
+            launchOptions.value = game.value.launchOptions || ''
           }
         } catch (error) {
           console.warn('Failed to load game_status.json, using localStorage:', error)
           // 如果读取失败，使用localStorage中的值
-          if (props.gameId === 'jc3-special') {
-            launchOptions.value = game.value.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
-          } else {
-            launchOptions.value = game.value.launchOptions || ''
-          }
+          launchOptions.value = game.value.launchOptions || ''
         }
       }
     }
@@ -293,18 +285,12 @@ async function saveLaunchOptions() {
 }
 
 function cancelEditLaunchOptions() {
-  if (props.gameId === 'jc3-special') {
-    launchOptions.value = game.value?.launchOptions || '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
-  } else {
-    launchOptions.value = game.value?.launchOptions || ''
-  }
-  isEditingLaunchOptions.value = false
+  launchOptions.value = game.value?.launchOptions || ''
 }
 
 function resetToDefaultLaunchOptions() {
-  if (props.gameId === 'jc3-special') {
-    launchOptions.value = '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs'
-  }
+  // 为所有游戏提供默认启动选项（可选）
+  launchOptions.value = ''
 }
 
 async function launchGame() {
@@ -635,8 +621,8 @@ function goBack() {
             </div>
           </div>
           
-          <!-- 启动选项设置 (仅对Just Cause 3显示) -->
-          <div v-if="game.id === 'jc3-special'" class="info-row">
+          <!-- 启动选项设置 (对所有游戏显示) -->
+          <div class="info-row">
             <label>启动选项:</label>
             <div v-if="!isEditingLaunchOptions" class="launch-options-display">
               <span class="launch-options-text">{{ launchOptions || '(未设置)' }}</span>
@@ -665,13 +651,13 @@ function goBack() {
                 </button>
               </div>
               <div class="launch-options-help">
-                <small>默认选项: --vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs</small>
+                <small>输入游戏启动时需要的命令行参数</small>
               </div>
             </div>
           </div>
           
-          <!-- 游戏启动按钮 (仅对Just Cause 3显示) -->
-          <div v-if="game.id === 'jc3-special'" class="info-row">
+          <!-- 游戏启动按钮 (对所有游戏显示) -->
+          <div class="info-row">
             <label></label>
             <div class="launch-game-section">
               <button 
@@ -680,9 +666,9 @@ function goBack() {
                 class="btn-launch-game"
               >
                 <span v-if="isLoading">启动中...</span>
-                <span v-else>启动 正当防卫3</span>
+                <span v-else>启动 {{ game.name }}</span>
               </button>
-              <small class="launch-help">学习版使用上面设置的启动选项启动游戏，steam版根据视频在启动选项中添加</small>
+              <small class="launch-help">使用上面设置的启动选项启动游戏</small>
             </div>
           </div>
         </div>
