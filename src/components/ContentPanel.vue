@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import ModsPanel from './panels/ModsPanel.vue'
 import GameDetailPanel from './panels/GameDetailPanel.vue'
-import DownloadPanel from './panels/DownloadPanel.vue'
 import ModManagerPanel from './panels/ModManagerPanel.vue'
 
 const currentPanel = ref('mods')
@@ -11,8 +10,6 @@ const currentGameId = ref('')
 function getTitle(): string {
   if (currentPanel.value === 'game-detail') {
     return '游戏详情'
-  } else if (currentPanel.value === 'download') {
-    return '下载管理'
   } else if (currentPanel.value === 'mod-manager') {
     return '模组管理器'
   }
@@ -22,10 +19,6 @@ function getTitle(): string {
 function openGame(gameId: string) {
   currentGameId.value = gameId
   currentPanel.value = 'game-detail'
-}
-
-function openDownload() {
-  currentPanel.value = 'download'
 }
 
 function openModManager() {
@@ -48,16 +41,11 @@ function backToMods() {
       <ModsPanel 
         v-if="currentPanel === 'mods'" 
         @open-game="openGame"
-        @open-download="openDownload"
         @open-mod-manager="openModManager"
       />
       <GameDetailPanel 
         v-if="currentPanel === 'game-detail'" 
         :game-id="currentGameId"
-        @back="backToMods"
-      />
-      <DownloadPanel 
-        v-if="currentPanel === 'download'" 
         @back="backToMods"
       />
       <ModManagerPanel 
