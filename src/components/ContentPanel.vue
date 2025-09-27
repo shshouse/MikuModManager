@@ -3,64 +3,66 @@ import { ref } from 'vue'
 import ModsPanel from './panels/ModsPanel.vue'
 import GameDetailPanel from './panels/GameDetailPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
-import AboutPanel from './panels/AboutPanel.vue'
-import FindModsPanel from './panels/FindModsPanel.vue'
-// Remove unused import
-// import ToolsPanel from './panels/ToolsPanel.vue'
+import ModManagerPanel from './panels/ModManagerPanel.vue'
 
-const props = defineProps<{
-  activeTab: string
-}>()
-
-const currentGameId = ref<string>('')
-const showGameDetail = ref(false)
+const currentPanel = ref('mods')
+const currentGameId = ref('')
 
 function getTitle(): string {
-  if (showGameDetail.value) {
+  if (currentPanel.value === 'game-detail') {
     return '游戏详情'
+  } else if (currentPanel.value === 'download') {
+    return '下载管理'
+  } else if (currentPanel.value === 'mod-manager') {
+    return '模组管理器'
   }
-  
-  const titles: Record<string, string> = {
-    'find-mods': '找模组',
-    'mods': '游戏管理',
-    'tools': '小工具',
-    'download': '下载(网盘)',
-    'about': '关于'
-  }
-  return titles[props.activeTab] || '未知页面'
+  return '游戏管理'
 }
 
-function handleNavigateToGame(gameId: string) {
+function openGame(gameId: string) {
   currentGameId.value = gameId
-  showGameDetail.value = true
+  currentPanel.value = 'game-detail'
 }
 
-function handleBackToMods() {
-  showGameDetail.value = false
+function openDownload() {
+  currentPanel.value = 'download'
+}
+
+function openModManager() {
+  currentPanel.value = 'mod-manager'
+}
+
+function backToMods() {
+  currentPanel.value = 'mods'
   currentGameId.value = ''
 }
 </script>
 
 <template>
   <div class="content-panel">
-    <div class="content-header">
+    <div class="header">
       <h1>{{ getTitle() }}</h1>
     </div>
     
-    <div class="content-body">
-      <FindModsPanel v-if="activeTab === 'find-mods'" />
-      <GameDetailPanel 
-        v-else-if="activeTab === 'mods' && showGameDetail" 
-        :game-id="currentGameId"
-        @back="handleBackToMods"
-      />
+    <div class="content">
       <ModsPanel 
-        v-else-if="activeTab === 'mods'" 
-        @navigate-to-game="handleNavigateToGame"
+        v-if="currentPanel === 'mods'" 
+        @open-game="openGame"
+        @open-download="openDownload"
+        @open-mod-manager="openModManager"
       />
-      <DownloadPanel v-else-if="activeTab === 'download'" />
-      
-      <AboutPanel v-else-if="activeTab === 'about'" />
+      <GameDetailPanel 
+        v-if="currentPanel === 'game-detail'" 
+        :game-id="currentGameId"
+        @back="backToMods"
+      />
+      <DownloadPanel 
+        v-if="currentPanel === 'download'" 
+        @back="backToMods"
+      />
+      <ModManagerPanel 
+        v-if="currentPanel === 'mod-manager'" 
+      />
     </div>
   </div>
 </template>
@@ -91,3 +93,21 @@ function handleBackToMods() {
   overflow-y: auto;
 }
 </style>
+<ModsPanel 
+  v-if="currentPanel === 'mods'" 
+  @open-game="openGame"
+  @open-download="openDownload"
+  @open-mod-manager="openModManager"
+/>
+<GameDetailPanel 
+  v-if="currentPanel === 'game-detail'" 
+  :game-id="currentGameId"
+  @back="backToMods"
+/>
+<DownloadPanel 
+  v-if="currentPanel === 'download'" 
+  @back="backToMods"
+/>
+<ModManagerPanel 
+  v-if="currentPanel === 'mod-manager'" 
+/>

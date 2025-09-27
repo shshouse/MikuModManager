@@ -5,6 +5,9 @@ import { invoke } from '@tauri-apps/api/core'
 
 const emit = defineEmits<{
   'navigate-to-game': [gameId: string]
+  'open-game': [gameId: string]
+  'open-download': []
+  'open-mod-manager': []
 }>()
 
 function navigateToGame(gameId: string) {
