@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { invoke } from '@tauri-apps/api/core'
+
 interface MenuItem {
   id: string
   label: string
   icon: string
+  externalUrl?: string
 }
 
 defineProps<{
@@ -15,13 +18,25 @@ const emit = defineEmits<{
 
 const menuItems: MenuItem[] = [
   { id: 'mods', label: '模组管理', icon: '' },
-  { id: 'find-mods', label: '找模组', icon: '' },
-  { id: 'download', label: '下载中心', icon: '' },
+  { id: 'find-mods', label: '找模组', icon: '', externalUrl: 'https://www.mikumod.com/' },
+  { id: 'download', label: '找游戏', icon: '', externalUrl: 'https://www.mikugame.icu/' },
   { id: 'about', label: '关于', icon: '' }
 ]
 
-function selectTab(tabId: string) {
-  emit('tabChange', tabId)
+async function selectTab(tabId: string) {
+  const menuItem = menuItems.find(item => item.id === tabId)
+  
+  if (menuItem?.externalUrl) {
+    // 如果是外部链接，打开浏览器
+    try {
+      await invoke('open_url_in_browser', { url: menuItem.externalUrl })
+    } catch (error) {
+      console.error('Failed to open browser:', error)
+    }
+  } else {
+    // 如果是内部标签，正常切换
+    emit('tabChange', tabId)
+  }
 }
 </script>
 
