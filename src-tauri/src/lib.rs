@@ -122,6 +122,14 @@ fn delete_file(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn delete_directory(path: String) -> Result<(), String> {
+    match fs::remove_dir_all(&path) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Failed to delete directory: {}", e))
+    }
+}
+
+#[tauri::command]
 fn write_file(path: String, content: String) -> Result<(), String> {
     // Create parent directory if it doesn't exist
     if let Some(parent) = Path::new(&path).parent() {
@@ -133,6 +141,50 @@ fn write_file(path: String, content: String) -> Result<(), String> {
     match fs::write(&path, content) {
         Ok(_) => Ok(()),
         Err(e) => Err(format!("Failed to write file: {}", e))
+    }
+}
+
+#[tauri::command]
+fn open_directory(path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        
+        match Command::new("explorer")
+            .arg(&path)
+            .spawn() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Failed to open directory: {}", e))
+            }
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        
+        match Command::new("open")
+            .arg(&path)
+            .spawn() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Failed to open directory: {}", e))
+            }
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        use std::process::Command;
+        
+        match Command::new("xdg-open")
+            .arg(&path)
+            .spawn() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Failed to open directory: {}", e))
+            }
+    }
+    
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Err("Unsupported operating system".to_string())
     }
 }
 
@@ -529,7 +581,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler!(
+        .invoke_handler(tauri::generate_handler![
             greet,
             get_app_dir,
             scan_directory,
@@ -539,8 +591,10 @@ pub fn run() {
             get_file_size,
             copy_file,
             delete_file,
+            delete_directory,
             write_file,
             read_file,
+            open_directory,
             scan_gta4_path,
             get_gta4_mod_info,
             scan_jc3_path,
@@ -551,7 +605,7 @@ pub fn run() {
             read_game_status,
             update_game_status,
             scan_games_for_status
-        ))
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
