@@ -296,6 +296,23 @@ function canInstall(mod: ModConfig): boolean {
 // 安装模组
 async function installMod(mod: ModConfig) {
   try {
+    // 检查文件名冲突
+    const { conflictingFiles, conflictingMods } = await checkFileConflicts(mod)
+    
+    let skipConflictingFiles = false
+    
+    if (conflictingFiles.length > 0) {
+      // 显示冲突解决对话框
+      const resolution = await showConflictResolutionDialog(mod, conflictingFiles, conflictingMods)
+      
+      if (resolution === 'cancel') {
+        alert('安装已取消')
+        return
+      }
+      
+      skipConflictingFiles = (resolution === 'skip')
+    }
+    
     // 创建模组安装目录
     const modInstallDir = `game/${mod.game}/mods/${mod.id}`
     await invoke('create_directory', { path: modInstallDir })
@@ -318,6 +335,11 @@ async function installMod(mod: ModConfig) {
       const sourcePath = `${modFilesPath}/${file}`
       const targetPath = `${mod.installPath}/${file}`
       const backupPath = `${backupDir}/${file}`
+      
+      // 检查是否跳过冲突文件
+      if (skipConflictingFiles && conflictingFiles.includes(file)) {
+        continue
+      }
       
       // 检查目标文件是否存在，存在则备份
       const targetExists = await invoke('file_exists', { path: targetPath }) as boolean
@@ -475,6 +497,184 @@ function formatDate(dateString: string): string {
   } catch {
     return dateString
   }
+}
+
+// 检查文件名冲突
+async function checkFileConflicts(mod: ModConfig): Promise<{conflictingFiles: string[], conflictingMods: string[]}> {
+  const conflictingFiles: string[] = []
+  const conflictingMods: string[] = []
+  
+  try {
+    // 获取所有已安装模组的安装日志
+    const installedMods = mods.value.filter(m => m.installed && m.id !== mod.id)
+    
+    for (const installedMod of installedMods) {
+      const installLogPath = `game/${installedMod.game}/mods/${installedMod.id}/install_log.json`
+      
+      try {
+        const logContent = await invoke('read_file', { path: installLogPath }) as string
+        const installLog: InstallLog = JSON.parse(logContent)
+        
+        // 检查当前模组的每个文件是否与已安装模组冲突
+        for (const file of mod.files) {
+          const targetPath = `${mod.installPath}/${file}`
+          
+          // 检查是否在已安装模组的安装日志中存在相同路径的文件
+          const hasConflict = installLog.installedFiles.some(installedFile => 
+            installedFile.targetPath === targetPath
+          )
+          
+          if (hasConflict) {
+            conflictingFiles.push(file)
+            if (!conflictingMods.includes(installedMod.name)) {
+              conflictingMods.push(installedMod.name)
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`无法读取模组 ${installedMod.name} 的安装日志:`, error)
+      }
+    }
+  } catch (error) {
+    console.error('检查文件冲突时出错:', error)
+  }
+  
+  return { conflictingFiles, conflictingMods }
+}
+
+// 显示冲突解决对话框
+async function showConflictResolutionDialog(
+  mod: ModConfig, 
+  conflictingFiles: string[], 
+  conflictingMods: string[]
+): Promise<'skip' | 'overwrite' | 'cancel'> {
+  return new Promise((resolve) => {
+    // 创建冲突解决对话框
+    const dialog = document.createElement('div')
+    dialog.className = 'conflict-dialog-overlay'
+    dialog.innerHTML = `
+      <div class="conflict-dialog">
+        <div class="conflict-dialog-header">
+          <h3>文件名冲突检测</h3>
+        </div>
+        <div class="conflict-dialog-body">
+          <p>检测到模组 <strong>${mod.name}</strong> 与以下已安装模组存在文件名冲突：</p>
+          <ul>
+            ${conflictingMods.map(modName => `<li>${modName}</li>`).join('')}
+          </ul>
+          <p>冲突文件：</p>
+          <ul class="conflict-file-list">
+            ${conflictingFiles.map(file => `<li>${file}</li>`).join('')}
+          </ul>
+          <p>请选择处理方式：</p>
+        </div>
+        <div class="conflict-dialog-footer">
+          <button class="btn btn-secondary" id="skip-btn">跳过冲突文件</button>
+          <button class="btn btn-warning" id="overwrite-btn">覆盖冲突文件</button>
+          <button class="btn btn-danger" id="cancel-btn">取消安装</button>
+        </div>
+      </div>
+    `
+    
+    // 添加样式
+    const style = document.createElement('style')
+    style.textContent = `
+      .conflict-dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .conflict-dialog {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .conflict-dialog-header h3 {
+        margin: 0 0 15px 0;
+        color: #e74c3c;
+      }
+      .conflict-dialog-body {
+        margin-bottom: 20px;
+      }
+      .conflict-file-list {
+        max-height: 150px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .conflict-dialog-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+      .btn-secondary:hover {
+        background: #545b62;
+      }
+      .btn-warning {
+        background: #f39c12;
+        color: white;
+      }
+      .btn-warning:hover {
+        background: #e67e22;
+      }
+      .btn-danger {
+        background: #dc3545;
+        color: white;
+      }
+      .btn-danger:hover {
+        background: #c82333;
+      }
+    `
+    
+    document.head.appendChild(style)
+    document.body.appendChild(dialog)
+    
+    // 添加事件监听器
+    document.getElementById('skip-btn')?.addEventListener('click', () => {
+      document.body.removeChild(dialog)
+      document.head.removeChild(style)
+      resolve('skip')
+    })
+    
+    document.getElementById('overwrite-btn')?.addEventListener('click', () => {
+      document.body.removeChild(dialog)
+      document.head.removeChild(style)
+      resolve('overwrite')
+    })
+    
+    document.getElementById('cancel-btn')?.addEventListener('click', () => {
+      document.body.removeChild(dialog)
+      document.head.removeChild(style)
+      resolve('cancel')
+    })
+  })
 }
 </script>
 
