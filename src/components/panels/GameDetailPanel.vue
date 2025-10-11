@@ -570,190 +570,192 @@ function goBack() {
 
 <template>
   <div class="game-detail-panel">
-    <div class="panel-header">
+    <div class="content-header">
       <button class="btn-back" @click="goBack">
         ← 返回游戏列表
       </button>
       <h2 v-if="game">{{ game.name }}</h2>
     </div>
 
-    <div v-if="!game" class="loading">
-      <p>加载中...</p>
-    </div>
-
-    <div v-else class="content">
-      <!-- 游戏详情模块 -->
-      <div class="section">
-        <h3>游戏详情</h3>
-        <div class="game-info-card">
-          <div class="info-row">
-            <label>游戏名称:</label>
-            <span>{{ game.name }}</span>
-          </div>
-          <div class="info-row">
-            <label>游戏路径:</label>
-            <div v-if="!isEditingDirectory" class="directory-display">
-              <span class="directory-path">{{ game.directory }}</span>
-              <button class="btn-edit" @click="isEditingDirectory = true">
-                修改
-              </button>
-            </div>
-            <div v-else class="directory-edit">
-              <div class="directory-input">
-                <input 
-                  v-model="newGameDirectory" 
-                  type="text" 
-                  class="form-input"
-                  placeholder="游戏目录路径..."
-                >
-                <button @click="selectNewDirectory" class="btn-browse">
-                  浏览
-                </button>
-              </div>
-              <div class="edit-actions">
-                <button @click="saveGameDirectory" class="btn-save">
-                  保存
-                </button>
-                <button @click="cancelEditDirectory" class="btn-cancel">
-                  取消
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 启动选项设置 (对所有游戏显示) -->
-          <div class="info-row">
-            <label>启动选项:</label>
-            <div v-if="!isEditingLaunchOptions" class="launch-options-display">
-              <span class="launch-options-text">{{ launchOptions || '(未设置)' }}</span>
-              <button class="btn-edit" @click="isEditingLaunchOptions = true">
-                修改
-              </button>
-            </div>
-            <div v-else class="launch-options-edit">
-              <div class="launch-options-input">
-                <input 
-                  v-model="launchOptions" 
-                  type="text" 
-                  class="form-input"
-                  placeholder="输入启动选项..."
-                >
-                <button @click="resetToDefaultLaunchOptions" class="btn-reset">
-                  重置默认
-                </button>
-              </div>
-              <div class="edit-actions">
-                <button @click="saveLaunchOptions" class="btn-save">
-                  保存
-                </button>
-                <button @click="cancelEditLaunchOptions" class="btn-cancel">
-                  取消
-                </button>
-              </div>
-              <div class="launch-options-help">
-                <small>输入游戏启动时需要的命令行参数</small>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 游戏启动按钮 (对所有游戏显示) -->
-          <div class="info-row">
-            <label></label>
-            <div class="launch-game-section">
-              <button 
-                @click="launchGame" 
-                :disabled="isLoading"
-                class="btn-launch-game"
-              >
-                <span v-if="isLoading">启动中...</span>
-                <span v-else>启动 {{ game.name }}</span>
-              </button>
-              <small class="launch-help">使用上面设置的启动选项启动游戏</small>
-            </div>
-          </div>
-        </div>
+    <div class="content-body">
+      <div v-if="!game" class="loading">
+        <p>加载中...</p>
       </div>
 
-      <!-- 补丁安装模块 -->
-      <div class="section">
-        <h3>补丁安装</h3>
-        <div class="patches-card">
-          <div v-if="patches.length === 0" class="empty-state">
-            <p>未找到可用补丁</p>
-            <small>补丁应放置在: game/{{ game.name }}/patch/ 目录下</small>
-          </div>
-          <div v-else>
-            <div class="patches-list">
-              <div 
-                v-for="patch in patches" 
-                :key="patch.name"
-                class="patch-item"
-                :class="{ selected: selectedPatches.has(patch.name) }"
-                @click="togglePatch(patch.name)"
-              >
-                <input 
-                  type="checkbox" 
-                  :checked="selectedPatches.has(patch.name)"
-                  @change="togglePatch(patch.name)"
-                >
-                <div class="patch-info">
-                  <span class="patch-name">{{ patch.name }}</span>
-                  <small class="patch-path">{{ patch.path }}</small>
+      <div v-else class="content">
+        <!-- 游戏详情模块 -->
+        <div class="section">
+          <h3>游戏详情</h3>
+          <div class="game-info-card">
+            <div class="info-row">
+              <label>游戏名称:</label>
+              <span>{{ game.name }}</span>
+            </div>
+            <div class="info-row">
+              <label>游戏路径:</label>
+              <div v-if="!isEditingDirectory" class="directory-display">
+                <span class="directory-path">{{ game.directory }}</span>
+                <button class="btn-edit" @click="isEditingDirectory = true">
+                  修改
+                </button>
+              </div>
+              <div v-else class="directory-edit">
+                <div class="directory-input">
+                  <input 
+                    v-model="newGameDirectory" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="游戏目录路径..."
+                  >
+                  <button @click="selectNewDirectory" class="btn-browse">
+                    浏览
+                  </button>
+                </div>
+                <div class="edit-actions">
+                  <button @click="saveGameDirectory" class="btn-save">
+                    保存
+                  </button>
+                  <button @click="cancelEditDirectory" class="btn-cancel">
+                    取消
+                  </button>
                 </div>
               </div>
             </div>
-            <div class="install-actions">
-              <button 
-                @click="installPatches"
-                :disabled="selectedPatches.size === 0 || isLoading"
-                class="btn-install"
-              >
-                <span v-if="isLoading">安装中...</span>
-                <span v-else>安装选中补丁 ({{ selectedPatches.size }})</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 备份回滚模块 -->
-      <div class="section">
-        <h3>备份回滚</h3>
-        <div class="backups-card">
-          <div v-if="backups.length === 0" class="empty-state">
-            <p>暂无可用备份</p>
-            <small>安装补丁时会自动创建备份</small>
-          </div>
-          <div v-else>
-            <div class="backups-list">
-              <div 
-                v-for="backup in backups" 
-                :key="backup.name"
-                class="backup-item"
-                :class="{ selected: selectedBackup === backup.name }"
-                @click="selectedBackup = backup.name"
-              >
-                <input 
-                  type="radio" 
-                  :value="backup.name"
-                  v-model="selectedBackup"
-                  name="backup"
-                >
-                <div class="backup-info">
-                  <span class="backup-name">{{ backup.timestamp }}</span>
-                  <small class="backup-path">{{ backup.path }}</small>
+            
+            <!-- 启动选项设置 (对所有游戏显示) -->
+            <div class="info-row">
+              <label>启动选项:</label>
+              <div v-if="!isEditingLaunchOptions" class="launch-options-display">
+                <span class="launch-options-text">{{ launchOptions || '(未设置)' }}</span>
+                <button class="btn-edit" @click="isEditingLaunchOptions = true">
+                  修改
+                </button>
+              </div>
+              <div v-else class="launch-options-edit">
+                <div class="launch-options-input">
+                  <input 
+                    v-model="launchOptions" 
+                    type="text" 
+                    class="form-input"
+                    placeholder="输入启动选项..."
+                  >
+                  <button @click="resetToDefaultLaunchOptions" class="btn-reset">
+                    重置默认
+                  </button>
+                </div>
+                <div class="edit-actions">
+                  <button @click="saveLaunchOptions" class="btn-save">
+                    保存
+                  </button>
+                  <button @click="cancelEditLaunchOptions" class="btn-cancel">
+                    取消
+                  </button>
+                </div>
+                <div class="launch-options-help">
+                  <small>输入游戏启动时需要的命令行参数</small>
                 </div>
               </div>
             </div>
-            <div class="rollback-actions">
-              <button 
-                @click="rollbackToBackup"
-                :disabled="!selectedBackup || isLoading"
-                class="btn-rollback"
-              >
-                <span v-if="isLoading">回滚中...</span>
-                <span v-else>回滚到选中备份</span>
-              </button>
+            
+            <!-- 游戏启动按钮 (对所有游戏显示) -->
+            <div class="info-row">
+              <label></label>
+              <div class="launch-game-section">
+                <button 
+                  @click="launchGame" 
+                  :disabled="isLoading"
+                  class="btn-launch-game"
+                >
+                  <span v-if="isLoading">启动中...</span>
+                  <span v-else>启动 {{ game.name }}</span>
+                </button>
+                <small class="launch-help">使用上面设置的启动选项启动游戏</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 补丁安装模块 -->
+        <div class="section">
+          <h3>补丁安装</h3>
+          <div class="patches-card">
+            <div v-if="patches.length === 0" class="empty-state">
+              <p>未找到可用补丁</p>
+              <small>补丁应放置在: game/{{ game.name }}/patch/ 目录下</small>
+            </div>
+            <div v-else>
+              <div class="patches-list">
+                <div 
+                  v-for="patch in patches" 
+                  :key="patch.name"
+                  class="patch-item"
+                  :class="{ selected: selectedPatches.has(patch.name) }"
+                  @click="togglePatch(patch.name)"
+                >
+                  <input 
+                    type="checkbox" 
+                    :checked="selectedPatches.has(patch.name)"
+                    @change="togglePatch(patch.name)"
+                  >
+                  <div class="patch-info">
+                    <span class="patch-name">{{ patch.name }}</span>
+                    <small class="patch-path">{{ patch.path }}</small>
+                  </div>
+                </div>
+              </div>
+              <div class="install-actions">
+                <button 
+                  @click="installPatches"
+                  :disabled="selectedPatches.size === 0 || isLoading"
+                  class="btn-install"
+                >
+                  <span v-if="isLoading">安装中...</span>
+                  <span v-else>安装选中补丁 ({{ selectedPatches.size }})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 备份回滚模块 -->
+        <div class="section">
+          <h3>备份回滚</h3>
+          <div class="backups-card">
+            <div v-if="backups.length === 0" class="empty-state">
+              <p>暂无可用备份</p>
+              <small>安装补丁时会自动创建备份</small>
+            </div>
+            <div v-else>
+              <div class="backups-list">
+                <div 
+                  v-for="backup in backups" 
+                  :key="backup.name"
+                  class="backup-item"
+                  :class="{ selected: selectedBackup === backup.name }"
+                  @click="selectedBackup = backup.name"
+                >
+                  <input 
+                    type="radio" 
+                    :value="backup.name"
+                    v-model="selectedBackup"
+                    name="backup"
+                  >
+                  <div class="backup-info">
+                    <span class="backup-name">{{ backup.timestamp }}</span>
+                    <small class="backup-path">{{ backup.path }}</small>
+                  </div>
+                </div>
+              </div>
+              <div class="rollback-actions">
+                <button 
+                  @click="rollbackToBackup"
+                  :disabled="!selectedBackup || isLoading"
+                  class="btn-rollback"
+                >
+                  <span v-if="isLoading">回滚中...</span>
+                  <span v-else>回滚到选中备份</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -764,80 +766,104 @@ function goBack() {
 
 <style scoped>
 .game-detail-panel {
-  max-width: 1000px;
-  padding: 20px;
+  height: 100vh;
+  background-color: #f5f5f5;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.panel-header {
+.content-header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  padding: 16px 20px;
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-back {
-  padding: 10px 20px;
-  background-color: #95a5a6;
-  color: white;
+  padding: 8px 12px;
+  background: none;
+  color: var(--text-white);
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 16px;
+  color: #333;
 }
 
 .btn-back:hover {
-  background-color: #7f8c8d;
-  transform: translateY(-1px);
+  background-color: #e0e0e0;
+  transform: none;
+  box-shadow: none;
 }
 
-.panel-header h2 {
+.content-header h2 {
   margin: 0;
+  margin-left: 12px;
   color: #2c3e50;
   font-size: 24px;
+  font-weight: var(--font-semibold);
+}
+
+.content-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
 }
 
 .loading {
-  text-align: center;
-  padding: 60px;
-  color: #7f8c8d;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #666;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
 }
 
 .section {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e0e0e0;
-  overflow: hidden;
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  overflow: visible;
+  transition: box-shadow 0.2s ease;
+}
+
+.section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .section h3 {
-  margin: 0;
-  padding: 20px 25px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e0e0e0;
+  margin: 0 0 16px 0;
+  padding: 0;
+  background: none;
+  border-bottom: none;
   color: #2c3e50;
   font-size: 18px;
+  font-weight: 600;
 }
 
 .game-info-card, .patches-card, .backups-card {
-  padding: 25px;
+  padding: var(--space-6);
 }
 
 .info-row {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .info-row:last-child {
@@ -845,37 +871,45 @@ function goBack() {
 }
 
 .info-row label {
-  font-weight: 600;
-  color: #34495e;
-  min-width: 80px;
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  min-width: 100px;
+  font-size: var(--font-sm);
 }
 
 .directory-display {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-4);
   flex: 1;
 }
 
 .directory-path {
-  font-family: 'Consolas', 'Monaco', monospace;
-  background: #f8f9fa;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  font-family: var(--font-family-mono);
+  background: var(--gray-50);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
   flex: 1;
   word-break: break-all;
+  font-size: var(--font-xs);
 }
 
 .btn-edit {
-  padding: 6px 12px;
-  background-color: #3498db;
-  color: white;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--primary-color);
+  color: var(--text-white);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-xs);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-base);
+}
+
+.btn-edit:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
 }
 
 .directory-edit {
@@ -884,45 +918,59 @@ function goBack() {
 
 .directory-input {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .form-input {
   flex: 1;
-  padding: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: var(--space-3);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-base);
+  font-size: var(--font-sm);
+  transition: border-color var(--transition-base);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .btn-browse {
-  padding: 10px 15px;
-  background-color: #95a5a6;
-  color: white;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--gray-400);
+  color: var(--text-white);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
+  transition: all var(--transition-base);
+}
+
+.btn-browse:hover {
+  background-color: var(--gray-500);
+  transform: translateY(-1px);
 }
 
 .launch-options-display {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-4);
   flex: 1;
 }
 
 .launch-options-text {
-  font-family: 'Consolas', 'Monaco', monospace;
-  background: #f8f9fa;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  font-family: var(--font-family-mono);
+  background: var(--gray-50);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
   flex: 1;
   word-break: break-all;
-  color: #2c3e50;
+  color: var(--text-primary);
+  font-size: var(--font-xs);
 }
 
 .launch-options-edit {
@@ -931,51 +979,56 @@ function goBack() {
 
 .launch-options-input {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .btn-reset {
-  padding: 10px 15px;
-  background-color: #f39c12;
-  color: white;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--warning-color);
+  color: var(--text-white);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-weight: 500;
-  white-space: nowrap;
+  font-weight: var(--font-medium);
+  transition: all var(--transition-base);
+}
+
+.btn-reset:hover {
+  background-color: #e67e22;
+  transform: translateY(-1px);
 }
 
 .launch-options-help {
-  margin-top: 8px;
-  padding: 8px 12px;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: #e8f4fd;
-  border-radius: 4px;
-  border-left: 3px solid #3498db;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-color);
 }
 
 .launch-options-help small {
-  color: #2980b9;
-  font-family: 'Consolas', 'Monaco', monospace;
+  color: var(--primary-dark);
+  font-family: var(--font-family-mono);
 }
 
 .launch-game-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1;
 }
 
 .btn-launch-game {
-  padding: 15px 30px;
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
+  padding: var(--space-4) var(--space-8);
+  background: linear-gradient(135deg, var(--error-color), #c0392b);
+  color: var(--text-white);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 16px;
-  transition: all 0.3s ease;
+  font-weight: var(--font-semibold);
+  font-size: var(--font-base);
+  transition: all var(--transition-base);
   box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
 }
 
@@ -986,83 +1039,97 @@ function goBack() {
 }
 
 .btn-launch-game:disabled {
-  background: #bdc3c7;
+  background: var(--gray-300);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
 .launch-help {
-  color: #7f8c8d;
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
   text-align: center;
 }
 
 .edit-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .btn-save, .btn-cancel {
-  padding: 6px 12px;
+  padding: var(--space-2) var(--space-3);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-xs);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-base);
 }
 
 .btn-save {
-  background-color: #27ae60;
-  color: white;
+  background-color: var(--success-color);
+  color: var(--text-white);
+}
+
+.btn-save:hover {
+  background-color: #219a52;
+  transform: translateY(-1px);
 }
 
 .btn-cancel {
-  background-color: #e74c3c;
-  color: white;
+  background-color: var(--error-color);
+  color: var(--text-white);
+}
+
+.btn-cancel:hover {
+  background-color: #c0392b;
+  transform: translateY(-1px);
 }
 
 .empty-state {
   text-align: center;
-  padding: 40px;
-  color: #7f8c8d;
+  padding: var(--space-10);
+  color: var(--text-muted);
 }
 
 .empty-state p {
-  margin: 0 0 5px 0;
-  font-size: 16px;
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-base);
 }
 
 .empty-state small {
-  font-size: 12px;
+  font-size: var(--font-xs);
 }
 
 .patches-list, .backups-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 .patch-item, .backup-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
+  background: var(--bg-card);
 }
 
 .patch-item:hover, .backup-item:hover {
-  border-color: #3498db;
-  background: #f8f9fa;
+  border-color: var(--primary-color);
+  background: var(--gray-50);
+  transform: translateY(-1px);
 }
 
 .patch-item.selected, .backup-item.selected {
-  border-color: #3498db;
+  border-color: var(--primary-color);
   background: #e3f2fd;
+  box-shadow: var(--shadow-sm);
 }
 
 .patch-info, .backup-info {
@@ -1071,16 +1138,17 @@ function goBack() {
 
 .patch-name, .backup-name {
   display: block;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 4px;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+  font-size: var(--font-sm);
 }
 
 .patch-path, .backup-path {
   display: block;
-  font-size: 12px;
-  color: #7f8c8d;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
 }
 
 .install-actions, .rollback-actions {
@@ -1089,36 +1157,36 @@ function goBack() {
 }
 
 .btn-install, .btn-rollback {
-  padding: 12px 30px;
+  padding: var(--space-3) var(--space-8);
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: var(--radius-base);
+  font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
 }
 
 .btn-install {
-  background-color: #27ae60;
-  color: white;
+  background-color: var(--success-color);
+  color: var(--text-white);
 }
 
 .btn-rollback {
-  background-color: #f39c12;
-  color: white;
+  background-color: var(--warning-color);
+  color: var(--text-white);
 }
 
 .btn-install:disabled, .btn-rollback:disabled {
-  background-color: #bdc3c7;
+  background-color: var(--gray-300);
   cursor: not-allowed;
 }
 
 .btn-install:not(:disabled):hover, .btn-rollback:not(:disabled):hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-edit:hover, .btn-browse:hover, .btn-save:hover, .btn-cancel:hover, .btn-reset:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-sm);
 }
 </style>

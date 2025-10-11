@@ -303,7 +303,7 @@ async function installMod(mod: ModConfig) {
     
     if (conflictingFiles.length > 0) {
       // 显示冲突解决对话框
-      const resolution = await showConflictResolutionDialog(mod, conflictingFiles, conflictingMods)
+      const resolution = await showConflictResolutionDialog(conflictingFiles, conflictingMods)
       
       if (resolution === 'cancel') {
         alert('安装已取消')
@@ -544,7 +544,7 @@ async function checkFileConflicts(mod: ModConfig): Promise<{conflictingFiles: st
 
 // 显示冲突解决对话框
 async function showConflictResolutionDialog(
-  mod: ModConfig, 
+  // mod: ModConfig,
   conflictingFiles: string[], 
   conflictingMods: string[]
 ): Promise<'skip' | 'overwrite' | 'cancel'> {
@@ -558,7 +558,7 @@ async function showConflictResolutionDialog(
           <h3>文件名冲突检测</h3>
         </div>
         <div class="conflict-dialog-body">
-          <p>检测到模组 <strong>${mod.name}</strong> 与以下已安装模组存在文件名冲突：</p>
+          <p>检测到模组 <strong>{{ mod.name }}</strong> 与以下已安装模组存在文件名冲突：</p>
           <ul>
             ${conflictingMods.map(modName => `<li>${modName}</li>`).join('')}
           </ul>
@@ -679,63 +679,29 @@ async function showConflictResolutionDialog(
 </script>
 
 <style scoped>
-.mod-manager-panel {
-  padding: 20px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.header h2 {
-  margin: 0;
-  color: #333;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-}
-
-.mods-container {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.no-mods {
-  text-align: center;
-  padding: 40px;
-  color: #666;
-}
-
 .mods-list {
   display: grid;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 .mod-item {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--bg-card);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  transition: all var(--transition-base);
 }
 
 .mod-item.installed {
-  border-color: #28a745;
+  border-color: var(--success-color);
   background: #f8fff9;
 }
 
 .mod-item.conflict {
-  border-color: #dc3545;
+  border-color: var(--error-color);
   background: #fff5f5;
 }
 
@@ -744,36 +710,36 @@ async function showConflictResolutionDialog(
 }
 
 .mod-info h3 {
-  margin: 0 0 10px 0;
-  color: #333;
+  margin: 0 0 var(--space-3) 0;
+  color: var(--text-primary);
 }
 
 .mod-meta {
   display: flex;
-  gap: 15px;
-  margin-bottom: 10px;
-  font-size: 0.9em;
-  color: #666;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-sm);
+  color: var(--text-muted);
 }
 
 .description {
-  margin: 10px 0;
-  color: #555;
+  margin: var(--space-3) 0;
+  color: var(--text-secondary);
 }
 
 .dependencies, .conflicts, .install-info {
-  font-size: 0.85em;
-  margin: 5px 0;
+  font-size: var(--font-xs);
+  margin: var(--space-1) 0;
 }
 
 .conflicts {
-  color: #dc3545;
+  color: var(--error-color);
 }
 
 .mod-actions {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-1);
   min-width: 100px;
 }
 
@@ -792,19 +758,20 @@ async function showConflictResolutionDialog(
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   width: 600px;
   max-width: 90vw;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-xl);
 }
 
 .modal-header {
-  padding: 20px;
-  border-bottom: 1px solid #ddd;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -812,6 +779,7 @@ async function showConflictResolutionDialog(
 
 .modal-header h3 {
   margin: 0;
+  color: var(--text-primary);
 }
 
 .btn-close {
@@ -819,94 +787,105 @@ async function showConflictResolutionDialog(
   border: none;
   font-size: 1.5em;
   cursor: pointer;
-  color: #666;
+  color: var(--text-muted);
+  transition: color var(--transition-base);
+}
+
+.btn-close:hover {
+  color: var(--text-primary);
 }
 
 .modal-body {
-  padding: 20px;
+  padding: var(--space-5);
   flex: 1;
   overflow-y: auto;
 }
 
 .modal-footer {
-  padding: 20px;
-  border-top: 1px solid #ddd;
+  padding: var(--space-5);
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .mod-details {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-1);
 }
 
 .detail-item label {
-  font-weight: bold;
-  color: #333;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 .file-list {
   max-height: 150px;
   overflow-y: auto;
-  background: #f5f5f5;
-  padding: 10px;
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 0.9em;
+  background: var(--gray-50);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-xs);
 }
 
 .file-list li {
-  margin: 2px 0;
+  margin: var(--space-1) 0;
 }
 
 /* 按钮样式 */
 .btn {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-base);
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: var(--font-sm);
   text-decoration: none;
   display: inline-block;
+  transition: all var(--transition-base);
 }
 
 .btn-primary {
-  background: #007bff;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-white);
 }
 
 .btn-primary:hover {
-  background: #0056b3;
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:disabled {
-  background: #6c757d;
+  background: var(--gray-300);
   cursor: not-allowed;
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
+  background: var(--gray-400);
+  color: var(--text-white);
 }
 
 .btn-secondary:hover {
-  background: #545b62;
+  background: var(--gray-500);
+  transform: translateY(-1px);
 }
 
 .btn-danger {
-  background: #dc3545;
-  color: white;
+  background: var(--error-color);
+  color: var(--text-white);
 }
 
 .btn-danger:hover {
   background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 </style>
