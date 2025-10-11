@@ -249,6 +249,13 @@ function formatPlayTime(minutes: number): string {
 async function scanGTA4() {
   gta4Status.value = 'scanning'
   try {
+    // 检查invoke函数是否可用（在浏览器环境中可能不可用）
+    if (typeof invoke === 'undefined') {
+      console.warn('invoke function not available in browser environment')
+      gta4Status.value = 'not-found'
+      return
+    }
+    
     const paths = await invoke('scan_gta4_path') as string[]
     if (paths.length > 0) {
       gta4Path.value = paths[0]
@@ -314,6 +321,13 @@ function openGTA4ModManager() {
 async function scanJC3() {
   jc3Status.value = 'scanning'
   try {
+    // 检查invoke函数是否可用（在浏览器环境中可能不可用）
+    if (typeof invoke === 'undefined') {
+      console.warn('invoke function not available in browser environment')
+      jc3Status.value = 'not-found'
+      return
+    }
+    
     const paths = await invoke('scan_jc3_path') as string[]
     if (paths.length > 0) {
       jc3Path.value = paths[0]
@@ -364,6 +378,13 @@ function openJC3ModManager() {
 // 组件挂载时自动扫描支持的游戏和加载游戏
 onMounted(async () => {
   loadGames()
+  
+  // 检查invoke函数是否可用（在浏览器环境中可能不可用）
+  if (typeof window !== 'undefined' && !window.__TAURI__) {
+    console.warn('Tauri environment not detected - skipping backend operations')
+    return
+  }
+  
   scanGTA4()
   scanJC3()
   
@@ -565,6 +586,9 @@ onMounted(async () => {
 <style scoped>
 .mods-panel {
   max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: calc(100vh - 40px);
 }
 
 .panel-header {
