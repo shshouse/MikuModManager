@@ -245,13 +245,13 @@ function formatPlayTime(minutes: number): string {
   return remainingHours > 0 ? `${days}天${remainingHours}小时` : `${days}天`
 }
 
-// GTA4 相关函数
+// GTA4相关函数
 async function scanGTA4() {
   gta4Status.value = 'scanning'
   try {
     // 检查invoke函数是否可用（在浏览器环境中可能不可用）
-    if (typeof invoke === 'undefined') {
-      console.warn('invoke function not available in browser environment')
+    if (typeof window !== 'undefined' && !(window as any).__TAURI__) {
+      console.warn('Tauri environment not detected - skipping backend operations')
       gta4Status.value = 'not-found'
       return
     }
@@ -322,8 +322,8 @@ async function scanJC3() {
   jc3Status.value = 'scanning'
   try {
     // 检查invoke函数是否可用（在浏览器环境中可能不可用）
-    if (typeof invoke === 'undefined') {
-      console.warn('invoke function not available in browser environment')
+    if (typeof window !== 'undefined' && !(window as any).__TAURI__) {
+      console.warn('Tauri environment not detected - skipping backend operations')
       jc3Status.value = 'not-found'
       return
     }
@@ -380,7 +380,7 @@ onMounted(async () => {
   loadGames()
   
   // 检查invoke函数是否可用（在浏览器环境中可能不可用）
-  if (typeof window !== 'undefined' && !window.__TAURI__) {
+  if (typeof window !== 'undefined' && !(window as any).__TAURI__) {
     console.warn('Tauri environment not detected - skipping backend operations')
     return
   }
@@ -585,90 +585,115 @@ onMounted(async () => {
 
 <style scoped>
 .mods-panel {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
-  min-height: calc(100vh - 40px);
+  padding: var(--space-5);
+  height: 100%;
+  overflow-y: auto;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  margin-bottom: var(--space-6);
+  padding: var(--space-5);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--space-3);
 }
 
 .btn-icon {
-  margin-right: 8px;
+  margin-right: var(--space-2);
 }
 
 .stats {
   display: flex;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .stat-item {
-  color: #7f8c8d;
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
 }
 
 /* 模块样式 */
 .module-section {
-  margin-bottom: 30px;
+  margin-bottom: var(--space-8);
 }
 
 .module-section h2 {
-  margin: 0 0 20px 0;
-  color: #2c3e50;
-  font-size: 20px;
-  font-weight: 600;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #3498db;
+  margin: 0 0 var(--space-5) 0;
+  color: var(--text-primary);
+  font-size: var(--font-xl);
+  font-weight: var(--font-semibold);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--primary-color);
 }
 
 .supported-games-content, .custom-games-content {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e0e0e0;
-  padding: 25px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
 }
 
 .game-cards-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 /* 游戏卡片样式 */
 .game-card {
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 20px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
   display: flex;
   align-items: center;
-  gap: 20px;
-  transition: all 0.2s ease;
+  gap: var(--space-5);
+  transition: all var(--transition-base);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.game-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary-color);
+  opacity: 0;
+  transition: opacity var(--transition-base);
 }
 
 .game-card:hover {
-  border-color: #3498db;
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-2px);
+}
+
+.game-card:hover::before {
+  opacity: 1;
 }
 
 .gta4-card {
-  border-color: #e67e22;
+  border-color: var(--warning-color);
 }
 
 .gta4-card:hover {
-  border-color: #d35400;
-  box-shadow: 0 4px 12px rgba(211, 84, 0, 0.15);
+  border-color: #e67e22;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.15);
 }
 
 .jc3-card {
@@ -680,75 +705,41 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(142, 68, 173, 0.15);
 }
 
-/* 按钮样式 */
-.btn-primary, .btn-secondary, .btn-danger, .btn-launch, .btn-manage {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
+.game-info {
+  flex: 1;
+}
+
+.game-title {
+  font-size: var(--font-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.game-directory {
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  margin: var(--space-1) 0;
+  font-family: var(--font-family-mono);
+  word-break: break-all;
+}
+
+.game-meta {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.last-played, .play-time {
+  color: var(--text-light);
+  font-size: var(--font-xs);
+  font-weight: var(--font-medium);
+}
+
+.game-actions {
+  display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.btn-primary {
-  background-color: #3498db;
-  color: white;
-}
-
-.btn-primary:disabled {
-  background-color: #bdc3c7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-secondary {
-  background-color: #95a5a6;
-  color: white;
-}
-
-.btn-secondary:disabled {
-  background-color: #bdc3c7;
-  cursor: not-allowed;
-}
-
-.btn-danger {
-  background-color: #e74c3c;
-  color: white;
-  padding: 8px 16px;
-  font-size: 12px;
-}
-
-.btn-launch {
-  background-color: #27ae60;
-  color: white;
-  padding: 8px 16px;
-  font-size: 12px;
-}
-
-.btn-manage {
-  background-color: #3498db;
-  color: white;
-  padding: 8px 16px;
-  font-size: 12px;
-}
-
-.btn-browse {
-  padding: 8px 15px;
-  background-color: #95a5a6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.btn-primary:not(:disabled):hover, .btn-secondary:not(:disabled):hover, .btn-danger:hover, .btn-launch:hover, .btn-manage:hover, .btn-browse:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  gap: var(--space-3);
 }
 
 /* 对话框样式 */
@@ -767,210 +758,116 @@ onMounted(async () => {
 }
 
 .dialog {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   width: 500px;
   max-width: 90vw;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: var(--shadow-xl);
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--gray-50);
 }
 
 .dialog-header h3 {
   margin: 0;
-  color: #2c3e50;
-  font-size: 18px;
+  color: var(--text-primary);
+  font-size: var(--font-lg);
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: var(--font-lg);
   cursor: pointer;
-  color: #7f8c8d;
-  padding: 5px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  color: var(--text-muted);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
 }
 
 .close-btn:hover {
-  background: #e0e0e0;
-  color: #2c3e50;
+  background: var(--gray-200);
+  color: var(--text-primary);
 }
 
 .dialog-body {
-  padding: 25px;
+  padding: var(--space-6);
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
-  color: #34495e;
-  font-weight: 600;
-  font-size: 14px;
+  margin-bottom: var(--space-2);
+  color: var(--text-secondary);
+  font-weight: var(--font-semibold);
+  font-size: var(--font-sm);
 }
 
 .required {
-  color: #e74c3c;
+  color: var(--error-color);
 }
 
 .form-input {
   width: 100%;
-  padding: 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-base);
+  font-size: var(--font-sm);
+  transition: border-color var(--transition-base);
+  background: var(--bg-secondary);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .form-input.error {
-  border-color: #e74c3c;
+  border-color: var(--error-color);
 }
 
 .directory-input {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .directory-input .form-input {
   flex: 1;
 }
 
-.error-message {
-  color: #e74c3c;
-  font-size: 12px;
-  margin-top: 5px;
-  font-weight: 500;
-}
-
-.dialog-actions {
+.dialog-footer {
   display: flex;
-  gap: 12px;
   justify-content: flex-end;
-  padding: 20px 25px;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f9fa;
-}
-
-/* 游戏列表样式 */
-.games-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--border-color);
+  background: var(--gray-50);
 }
 
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px dashed #e0e0e0;
+  padding: var(--space-10);
+  color: var(--text-muted);
 }
 
 .empty-state h3 {
-  color: #2c3e50;
-  margin: 0 0 10px 0;
-  font-size: 18px;
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
 }
 
 .empty-state p {
-  color: #7f8c8d;
-  margin: 0;
-}
-
-.game-item {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  transition: all 0.2s ease;
-}
-
-.game-item:hover {
-  border-color: #3498db;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
-}
-
-.game-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex: 1;
-  cursor: pointer;
-}
-
-.game-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8f9fa;
-  border-radius: 8px;
-  font-size: 24px;
-}
-
-.game-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.game-info {
-  flex: 1;
-}
-
-.game-info h3 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
-  font-size: 16px;
-}
-
-.game-directory {
-  color: #7f8c8d;
-  font-size: 12px;
-  margin: 4px 0;
-  font-family: 'Consolas', 'Monaco', monospace;
-  word-break: break-all;
-}
-
-.game-meta {
-  display: flex;
-  gap: 15px;
-  margin-top: 8px;
-}
-
-.last-played, .play-time {
-  color: #95a5a6;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.game-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  margin-bottom: var(--space-4);
 }
 </style>

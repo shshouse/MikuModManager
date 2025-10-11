@@ -15,9 +15,9 @@ const props = withDefaults(defineProps<Props>(), {
   activeTab: 'mods'
 })
 
-const emit = defineEmits<{
-  tabChange: [tab: string]
-}>()
+// const emit = defineEmits<{
+//   tabChange: [tab: string]
+// }>()
 
 const currentPanel = ref(props.activeTab)
 const currentGameId = ref('')
@@ -57,20 +57,20 @@ function backToMods() {
 }
 
 // 处理侧边栏标签切换
-function handleTabChange(tab: string) {
-  currentPanel.value = tab
-  currentGameId.value = ''
-  emit('tabChange', tab)
-}
+// function handleTabChange(tab: string) {
+//   currentPanel.value = tab
+//   currentGameId.value = ''
+//   emit('tabChange', tab)
+// }
 </script>
 
 <template>
   <div class="content-panel">
-    <div class="header">
+    <div class="content-header">
       <h1>{{ getTitle() }}</h1>
     </div>
     
-    <div class="content">
+    <div class="content-body">
       <ModsPanel 
         v-if="currentPanel === 'mods'" 
         @open-game="openGame"
@@ -102,42 +102,30 @@ function handleTabChange(tab: string) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
+  height: 100vh;
 }
 
 .content-header {
-  padding: 20px 30px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  padding: var(--space-5) var(--space-8);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  margin-bottom: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .content-header h1 {
-  font-size: 24px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: var(--font-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .content-body {
   flex: 1;
-  padding: 20px 30px;
+  padding: 0;
   overflow-y: auto;
+  background-color: var(--bg-primary);
 }
 </style>
-<ModsPanel 
-  v-if="currentPanel === 'mods'" 
-  @open-game="openGame"
-  @open-download="openDownload"
-  @open-mod-manager="openModManager"
-/>
-<GameDetailPanel 
-  v-if="currentPanel === 'game-detail'" 
-  :game-id="currentGameId"
-  @back="backToMods"
-/>
-<DownloadPanel 
-  v-if="currentPanel === 'download'" 
-  @back="backToMods"
-/>
-<ModManagerPanel 
-  v-if="currentPanel === 'mod-manager'" 
-/>

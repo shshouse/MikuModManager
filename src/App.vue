@@ -29,6 +29,8 @@ function handleTabChange(tab: string) {
 </style>
 
 <style>
+@import './styles/design-system.css';
+
 * {
   margin: 0;
   padding: 0;
@@ -36,8 +38,8 @@ function handleTabChange(tab: string) {
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f5f5;
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
 }
 
 #app {

@@ -15,10 +15,10 @@ const emit = defineEmits<{
 }>()
 
 const menuItems: MenuItem[] = [
-  { id: 'mods', label: '模组管理', icon: '' },
-  { id: 'find-mods', label: '找模组', icon: '' },
-  { id: 'download', label: '找游戏', icon: '' },
-  { id: 'about', label: '关于', icon: '' }
+  { id: 'mods', label: '模组管理', icon: '🎮' },
+  { id: 'find-mods', label: '找模组', icon: '🔍' },
+  { id: 'download', label: '找游戏', icon: '📥' },
+  { id: 'about', label: '关于', icon: 'ℹ️' }
 ]
 
 function selectTab(tabId: string) {
@@ -49,47 +49,57 @@ function selectTab(tabId: string) {
 
 <style scoped>
 .sidebar {
-  width: 200px;
+  width: 240px;
   background-color: #2c3e50;
   color: white;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #34495e;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  height: 100vh;
 }
 
 .sidebar-header {
   padding: 20px 16px;
   border-bottom: 1px solid #34495e;
   text-align: center;
+  background-color: #34495e;
 }
 
 .sidebar-header h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #ecf0f1;
+  color: white;
+  margin: 0;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 10px 0;
+  padding: 12px 0;
+  overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 16px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
   border-left: 3px solid transparent;
+  margin: 0 8px;
+  border-radius: 6px;
 }
 
 .nav-item:hover {
   background-color: #34495e;
+  transform: translateX(2px);
 }
 
 .nav-item.active {
   background-color: #3498db;
   border-left-color: #2980b9;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
 }
 
 .nav-icon {
@@ -97,10 +107,16 @@ function selectTab(tabId: string) {
   margin-right: 12px;
   width: 20px;
   text-align: center;
+  opacity: 0.8;
+}
+
+.nav-item.active .nav-icon {
+  opacity: 1;
 }
 
 .nav-label {
   font-size: 14px;
   font-weight: 500;
+  flex: 1;
 }
 </style>
