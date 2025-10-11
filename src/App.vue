@@ -16,7 +16,7 @@ function handleTabChange(tab: string) {
       :active-tab="activeTab" 
       @tab-change="handleTabChange" 
     />
-    <ContentPanel :active-tab="activeTab" />
+    <ContentPanel :active-tab="activeTab" @tab-change="handleTabChange" />
   </div>
 </template>
 

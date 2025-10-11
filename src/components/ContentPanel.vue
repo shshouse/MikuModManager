@@ -1,17 +1,43 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import ModsPanel from './panels/ModsPanel.vue'
 import GameDetailPanel from './panels/GameDetailPanel.vue'
 import ModManagerPanel from './panels/ModManagerPanel.vue'
+import FindModsPanel from './panels/FindModsPanel.vue'
+import DownloadPanel from './panels/DownloadPanel.vue'
+import AboutPanel from './panels/AboutPanel.vue'
 
-const currentPanel = ref('mods')
+interface Props {
+  activeTab?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  activeTab: 'mods'
+})
+
+const emit = defineEmits<{
+  tabChange: [tab: string]
+}>()
+
+const currentPanel = ref(props.activeTab)
 const currentGameId = ref('')
+
+// 监听activeTab变化
+watch(() => props.activeTab, (newTab) => {
+  currentPanel.value = newTab
+})
 
 function getTitle(): string {
   if (currentPanel.value === 'game-detail') {
     return '游戏详情'
   } else if (currentPanel.value === 'mod-manager') {
     return '模组管理器'
+  } else if (currentPanel.value === 'find-mods') {
+    return '找模组'
+  } else if (currentPanel.value === 'download') {
+    return '找游戏'
+  } else if (currentPanel.value === 'about') {
+    return '关于'
   }
   return '游戏管理'
 }
@@ -28,6 +54,13 @@ function openModManager() {
 function backToMods() {
   currentPanel.value = 'mods'
   currentGameId.value = ''
+}
+
+// 处理侧边栏标签切换
+function handleTabChange(tab: string) {
+  currentPanel.value = tab
+  currentGameId.value = ''
+  emit('tabChange', tab)
 }
 </script>
 
@@ -50,6 +83,15 @@ function backToMods() {
       />
       <ModManagerPanel 
         v-if="currentPanel === 'mod-manager'" 
+      />
+      <FindModsPanel 
+        v-if="currentPanel === 'find-mods'" 
+      />
+      <DownloadPanel 
+        v-if="currentPanel === 'download'" 
+      />
+      <AboutPanel 
+        v-if="currentPanel === 'about'" 
       />
     </div>
   </div>
