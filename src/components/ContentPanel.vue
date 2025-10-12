@@ -27,21 +27,6 @@ watch(() => props.activeTab, (newTab) => {
   currentPanel.value = newTab
 })
 
-function getTitle(): string {
-  if (currentPanel.value === 'game-detail') {
-    return '游戏详情'
-  } else if (currentPanel.value === 'mod-manager') {
-    return '模组管理器'
-  } else if (currentPanel.value === 'find-mods') {
-    return '找模组'
-  } else if (currentPanel.value === 'download') {
-    return '找游戏'
-  } else if (currentPanel.value === 'about') {
-    return '关于'
-  }
-  return '游戏管理'
-}
-
 function openGame(gameId: string) {
   currentGameId.value = gameId
   currentPanel.value = 'game-detail'
