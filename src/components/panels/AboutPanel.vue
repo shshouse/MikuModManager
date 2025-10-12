@@ -8,7 +8,7 @@ const appInfo = ref({
   description: '简单的补丁管理工具，支持所有需要安装与回滚功能的场景',
   buildDate: '2025-08-13',
   license: 'Apache 2.0 License',
-  image:'なの'
+  image: 'MikuMod'
 })
 
 const links = [
@@ -95,7 +95,7 @@ function openLink(url: string) {
 
 <style scoped>
 .about-panel {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: #f5f5f5;

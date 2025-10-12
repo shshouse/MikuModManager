@@ -66,10 +66,6 @@ function backToMods() {
 
 <template>
   <div class="content-panel">
-    <div class="content-header">
-      <h1>{{ getTitle() }}</h1>
-    </div>
-    
     <div class="content-body">
       <ModsPanel 
         v-if="currentPanel === 'mods'" 
@@ -106,21 +102,7 @@ function backToMods() {
   height: 100vh;
 }
 
-.content-header {
-  padding: var(--space-5) var(--space-8);
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-card);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  margin-bottom: 0;
-  box-shadow: var(--shadow-sm);
-}
 
-.content-header h1 {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0;
-}
 
 .content-body {
   flex: 1;

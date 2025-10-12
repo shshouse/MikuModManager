@@ -766,7 +766,7 @@ function goBack() {
 
 <style scoped>
 .game-detail-panel {
-  height: 100vh;
+  min-height: 100vh;
   background-color: #f5f5f5;
   padding: 0;
   display: flex;
@@ -939,10 +939,10 @@ function goBack() {
 
 .btn-browse {
   padding: var(--space-3) var(--space-4);
-  background-color: var(--gray-400);
+  background-color: var(--primary-color);
   color: var(--text-white);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-base);
   cursor: pointer;
   font-weight: var(--font-medium);
   white-space: nowrap;
@@ -950,8 +950,9 @@ function goBack() {
 }
 
 .btn-browse:hover {
-  background-color: var(--gray-500);
+  background-color: var(--primary-dark);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-primary);
 }
 
 .launch-options-display {

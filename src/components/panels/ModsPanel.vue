@@ -459,7 +459,7 @@ onMounted(async () => {
               <p v-else>点击扫描游戏安装路径</p>
             </div>
             <div class="game-actions">
-              <button v-if="jc3Status === 'found'" @click.stop="openJC3ModManager" class="btn-manage">
+              <button v-if="jc3Status === 'found'" @click.stop="openJC3ModManager" class="btn btn-success">
                 管理模组
               </button>
               <button @click.stop="scanJC3" class="btn-secondary" :disabled="jc3Status === 'scanning'">
@@ -509,7 +509,7 @@ onMounted(async () => {
                     class="form-input"
                     :class="{ error: errors.directory }"
                   >
-                  <button @click="selectDirectory" class="btn-browse">
+                  <button @click="selectDirectory" class="btn btn-secondary">
                     浏览
                   </button>
                 </div>
@@ -562,14 +562,15 @@ onMounted(async () => {
             
             <div class="game-actions">
               <button 
-                class="btn-manage"
+                class="btn btn-secondary"
                 @click="navigateToGame(game.id)"
                 title="管理游戏"
+                style="margin-right: 8px;"
               >
                 管理
               </button>
               <button 
-                class="btn-danger" 
+                class="btn btn-error" 
                 @click.stop="removeGame(game.id)"
                 title="删除游戏"
               >
@@ -622,6 +623,124 @@ onMounted(async () => {
   font-weight: var(--font-medium);
 }
 
+/* 按钮样式美化 */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #2980b9 100%);
+  border: none;
+  color: white;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, #2980b9 0%, var(--primary-color) 100%);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:disabled {
+  background: var(--gray-400);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-medium);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--bg-card);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  border: none;
+  color: white;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+}
+
+.btn-error {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  border: none;
+  color: white;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-error:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+}
+
+.btn-manage {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  border: none;
+  color: white;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-manage:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+}
+
 /* 模块样式 */
 .module-section {
   margin-bottom: var(--space-8);
@@ -650,11 +769,11 @@ onMounted(async () => {
   gap: var(--space-4);
 }
 
-/* 游戏卡片样式 */
+/* 游戏卡片样式美化 */
 .game-card {
   background: var(--bg-card);
   border: 2px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-5);
   display: flex;
   align-items: center;
@@ -663,6 +782,7 @@ onMounted(async () => {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .game-card::before {
@@ -679,8 +799,8 @@ onMounted(async () => {
 
 .game-card:hover {
   border-color: var(--primary-color);
-  box-shadow: var(--shadow-primary);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
 }
 
 .game-card:hover::before {
@@ -688,28 +808,30 @@ onMounted(async () => {
 }
 
 .gta4-card {
-  border-color: var(--warning-color);
+  border-color: #f39c12;
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.05) 0%, rgba(243, 156, 18, 0.02) 100%);
 }
 
 .gta4-card:hover {
   border-color: #e67e22;
-  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.15);
+  box-shadow: 0 8px 25px rgba(243, 156, 18, 0.2);
 }
 
 .jc3-card {
   border-color: #9b59b6;
+  background: linear-gradient(135deg, rgba(155, 89, 182, 0.05) 0%, rgba(155, 89, 182, 0.02) 100%);
 }
 
 .jc3-card:hover {
   border-color: #8e44ad;
-  box-shadow: 0 4px 12px rgba(142, 68, 173, 0.15);
+  box-shadow: 0 8px 25px rgba(142, 68, 173, 0.2);
 }
 
 .game-info {
   flex: 1;
 }
 
-.game-title {
+.game-info h3 {
   font-size: var(--font-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
@@ -742,7 +864,7 @@ onMounted(async () => {
   gap: var(--space-3);
 }
 
-/* 对话框样式 */
+/* 对话框样式美化 */
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -754,17 +876,18 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
 }
 
 .dialog {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   width: 500px;
   max-width: 90vw;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-2xl);
+  border: 1px solid var(--border-color);
 }
 
 .dialog-header {
@@ -773,29 +896,36 @@ onMounted(async () => {
   align-items: center;
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--border-color);
-  background: var(--gray-50);
+  background: linear-gradient(135deg, var(--gray-50) 0%, var(--bg-secondary) 100%);
 }
 
 .dialog-header h3 {
   margin: 0;
   color: var(--text-primary);
   font-size: var(--font-lg);
+  font-weight: var(--font-semibold);
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: var(--font-lg);
+  font-size: var(--font-xl);
   cursor: pointer;
   color: var(--text-muted);
   padding: var(--space-1);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   transition: all var(--transition-base);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
   background: var(--gray-200);
   color: var(--text-primary);
+  transform: rotate(90deg);
 }
 
 .dialog-body {
@@ -822,9 +952,9 @@ onMounted(async () => {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   border: 2px solid var(--border-color);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-lg);
   font-size: var(--font-sm);
-  transition: border-color var(--transition-base);
+  transition: all var(--transition-base);
   background: var(--bg-secondary);
 }
 
@@ -847,7 +977,7 @@ onMounted(async () => {
   flex: 1;
 }
 
-.dialog-footer {
+.dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
@@ -869,5 +999,117 @@ onMounted(async () => {
 
 .empty-state p {
   margin-bottom: var(--space-4);
+}
+
+/* 游戏列表样式美化 */
+.games-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.game-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.game-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.game-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.game-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #2980b9 100%);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-bold);
+  color: white;
+  font-size: var(--font-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.game-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .game-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  
+  .game-actions {
+    justify-content: flex-end;
+    margin-top: var(--space-2);
+  }
+  
+  .dialog {
+    width: 95vw;
+    margin: var(--space-4);
+  }
+  
+  .game-card {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-4);
+  }
+  
+  .game-actions {
+    justify-content: center;
+  }
+}
+
+/* 错误消息样式 */
+.error-message {
+  color: var(--error-color);
+  font-size: var(--font-xs);
+  margin-top: var(--space-1);
+  font-weight: var(--font-medium);
+}
+
+/* 加载状态 */
+.btn-primary:disabled::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
