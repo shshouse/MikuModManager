@@ -415,66 +415,71 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mods-panel">
+  <div class="mods-panel panel">
     <div class="panel-header">
-      <button class="btn-primary" @click="showAddGameDialog">
-        添加游戏
-      </button>
-      <div class="stats">
-        <span class="stat-item">在选择游戏路径后开始管理模组＞﹏＜,现在已添加游戏: {{ games.length }}</span>
-      </div>
-    </div>
-
-    <!-- 特别支持游戏模块 -->
-    <div class="module-section">
-      <h2>特别支持游戏</h2>
-      <div class="supported-games-content">
-        <div class="game-cards-container">
-          <!-- GTA4 游戏卡片 -->
-          <div class="game-card gta4-card" @click="scanGTA4">
-            <div class="game-info">
-              <h3>GTAIV</h3>
-              <p v-if="gta4Status === 'scanning'">正在扫描安装路径...</p>
-              <p v-else-if="gta4Status === 'found'" class="game-directory">已找到游戏: {{ gta4Path }}</p>
-              <p v-else-if="gta4Status === 'not-found'">未找到游戏安装路径</p>
-              <p v-else>点击扫描游戏安装路径</p>
-            </div>
-            <div class="game-actions">
-              <button v-if="gta4Status === 'found'" @click.stop="openGTA4ModManager" class="btn-manage">
-                管理模组
-              </button>
-              <button @click.stop="scanGTA4" class="btn-secondary" :disabled="gta4Status === 'scanning'">
-                {{ gta4Status === 'scanning' ? '扫描中...' : '重新扫描' }}
-              </button>
-            </div>
-          </div>
-          
-          <!-- 正当防卫3 游戏卡片 -->
-          <div class="game-card jc3-card" @click="scanJC3">
-            <div class="game-info">
-              <h3>Just Cause 3</h3>
-              <p v-if="jc3Status === 'scanning'">正在扫描安装路径...</p>
-              <p v-else-if="jc3Status === 'found'" class="game-directory">已找到游戏: {{ jc3Path }}</p>
-              <p v-else-if="jc3Status === 'not-found'">未找到游戏安装路径</p>
-              <p v-else>点击扫描游戏安装路径</p>
-            </div>
-            <div class="game-actions">
-              <button v-if="jc3Status === 'found'" @click.stop="openJC3ModManager" class="btn btn-success">
-                管理模组
-              </button>
-              <button @click.stop="scanJC3" class="btn-secondary" :disabled="jc3Status === 'scanning'">
-                {{ jc3Status === 'scanning' ? '扫描中...' : '重新扫描' }}
-              </button>
-            </div>
-          </div>
+      <h2>游戏列表</h2>
+      <div class="header-actions">
+        <button class="btn btn-primary" @click="showAddGameDialog">
+          添加游戏
+        </button>
+        <div class="stats">
+          <span class="stat-item">已添加游戏: {{ games.length }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 自定义游戏模块 -->
-    <div class="module-section">
-      <h2>游戏列表</h2>
-      <div class="custom-games-content">
+    <div class="panel-body">
+      <!-- 特别支持游戏模块 -->
+      <div class="module-section">
+        <h3>特别支持</h3>
+        <div class="supported-games-grid">
+          <!-- GTA4 游戏卡片 -->
+          <div class="card game-card gta4-card" @click="scanGTA4">
+            <div class="card-body">
+              <div class="game-info">
+                <h4>GTAIV</h4>
+                <p v-if="gta4Status === 'scanning'">正在扫描安装路径...</p>
+                <p v-else-if="gta4Status === 'found'" class="game-directory">已找到: {{ gta4Path }}</p>
+                <p v-else-if="gta4Status === 'not-found'">未找到游戏</p>
+                <p v-else>点击扫描</p>
+              </div>
+              <div class="game-actions">
+                <button v-if="gta4Status === 'found'" @click.stop="openGTA4ModManager" class="btn btn-primary">
+                  管理
+                </button>
+                <button @click.stop="scanGTA4" class="btn btn-secondary" :disabled="gta4Status === 'scanning'">
+                  {{ gta4Status === 'scanning' ? '...' : '扫描' }}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 正当防卫3 游戏卡片 -->
+          <div class="card game-card jc3-card" @click="scanJC3">
+            <div class="card-body">
+              <div class="game-info">
+                <h4>Just Cause 3</h4>
+                <p v-if="jc3Status === 'scanning'">正在扫描安装路径...</p>
+                <p v-else-if="jc3Status === 'found'" class="game-directory">已找到: {{ jc3Path }}</p>
+                <p v-else-if="jc3Status === 'not-found'">未找到游戏</p>
+                <p v-else>点击扫描</p>
+              </div>
+              <div class="game-actions">
+                <button v-if="jc3Status === 'found'" @click.stop="openJC3ModManager" class="btn btn-primary">
+                  管理
+                </button>
+                <button @click.stop="scanJC3" class="btn btn-secondary" :disabled="jc3Status === 'scanning'">
+                  {{ jc3Status === 'scanning' ? '...' : '扫描' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 自定义游戏模块 -->
+      <div class="module-section">
+        <h3>自定义游戏</h3>
         <!-- Add Game Dialog -->
         <div v-if="showAddDialog" class="dialog-overlay" @click.self="cancelAdd">
           <div class="dialog">
@@ -521,13 +526,13 @@ onMounted(async () => {
             <div class="dialog-actions">
               <button 
                 @click="addGame" 
-                class="btn-primary"
+                class="btn btn-primary"
                 :disabled="!isFormValid || isLoading"
               >
                 <span v-if="isLoading">添加中...</span>
                 <span v-else>添加游戏</span>
               </button>
-              <button @click="cancelAdd" class="btn-secondary">取消</button>
+              <button @click="cancelAdd" class="btn btn-secondary">取消</button>
             </div>
           </div>
         </div>
@@ -539,43 +544,37 @@ onMounted(async () => {
             <p>点击上方按钮添加您的第一个游戏</p>
           </div>
           
-          <div v-for="game in games" :key="game.id" class="game-item">
-            <div class="game-content" @click="navigateToGame(game.id)">
-              <div class="game-icon">
-                <span v-if="!game.icon">G</span>
-                <img v-else :src="game.icon" :alt="game.name">
-              </div>
-              
-              <div class="game-info">
-                <h3>{{ game.name }}</h3>
-                <p class="game-directory">{{ game.directory }}</p>
-                <div class="game-meta">
-                  <span v-if="game.lastPlayed" class="last-played">
-                    上次游玩: {{ formatDate(game.lastPlayed) }}
-                  </span>
-                  <span v-if="game.playTime" class="play-time">
-                    游玩时间: {{ formatPlayTime(game.playTime) }}
-                  </span>
+          <div v-for="game in games" :key="game.id" class="card game-item" @click="navigateToGame(game.id)">
+            <div class="card-body">
+              <div class="game-content">
+                <div class="game-icon">
+                  <span v-if="!game.icon">G</span>
+                  <img v-else :src="game.icon" :alt="game.name">
+                </div>
+                
+                <div class="game-info">
+                  <h4>{{ game.name }}</h4>
+                  <p class="game-directory">{{ game.directory }}</p>
+                  <div class="game-meta">
+                    <span v-if="game.lastPlayed" class="last-played">
+                      上次游玩: {{ formatDate(game.lastPlayed) }}
+                    </span>
+                    <span v-if="game.playTime" class="play-time">
+                      游玩时间: {{ formatPlayTime(game.playTime) }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <div class="game-actions">
-              <button 
-                class="btn btn-secondary"
-                @click="navigateToGame(game.id)"
-                title="管理游戏"
-                style="margin-right: 8px;"
-              >
-                管理
-              </button>
-              <button 
-                class="btn btn-error" 
-                @click.stop="removeGame(game.id)"
-                title="删除游戏"
-              >
-                删除
-              </button>
+              
+              <div class="game-actions">
+                <button 
+                  class="btn btn-error" 
+                  @click.stop="removeGame(game.id)"
+                  title="删除游戏"
+                >
+                  删除
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -586,167 +585,43 @@ onMounted(async () => {
 
 <style scoped>
 .mods-panel {
-  padding: var(--space-5);
-  height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-6);
   padding: var(--space-5);
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+  margin: 0;
 }
 
 .header-actions {
   display: flex;
-  gap: var(--space-3);
-}
-
-.btn-icon {
-  margin-right: var(--space-2);
+  gap: var(--space-4);
+  align-items: center;
 }
 
 .stats {
-  display: flex;
-  gap: var(--space-5);
-}
-
-.stat-item {
+  font-size: var(--font-sm);
   color: var(--text-muted);
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
 }
 
-/* 按钮样式美化 */
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, #2980b9 100%);
-  border: none;
-  color: white;
-  padding: var(--space-3) var(--space-6);
-  border-radius: var(--radius-lg);
-  font-weight: var(--font-semibold);
-  font-size: var(--font-sm);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
+.panel-body {
+  padding: var(--space-6);
+  overflow-y: auto;
 }
 
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #2980b9 0%, var(--primary-color) 100%);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-primary:disabled {
-  background: var(--gray-400);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btn-secondary {
-  background: var(--bg-secondary);
-  border: 2px solid var(--border-color);
-  color: var(--text-secondary);
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-lg);
-  font-weight: var(--font-medium);
-  font-size: var(--font-sm);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.btn-secondary:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-  background: var(--bg-card);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btn-success {
-  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-  border: none;
-  color: white;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-lg);
-  font-weight: var(--font-semibold);
-  font-size: var(--font-sm);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-success:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-}
-
-.btn-error {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  border: none;
-  color: white;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-lg);
-  font-weight: var(--font-semibold);
-  font-size: var(--font-sm);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-error:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
-}
-
-.btn-manage {
-  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-  border: none;
-  color: white;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-lg);
-  font-weight: var(--font-semibold);
-  font-size: var(--font-sm);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-manage:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
-}
-
-/* 模块样式 */
 .module-section {
   margin-bottom: var(--space-8);
 }
 
-.module-section h2 {
+.module-section h3 {
   margin: 0 0 var(--space-5) 0;
   color: var(--text-primary);
   font-size: var(--font-xl);
@@ -755,116 +630,49 @@ onMounted(async () => {
   border-bottom: 2px solid var(--primary-color);
 }
 
-.supported-games-content, .custom-games-content {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
+.supported-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: var(--space-5);
 }
 
-.game-cards-container {
+.game-card .card-body {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: var(--space-4);
-}
-
-/* 游戏卡片样式美化 */
-.game-card {
-  background: var(--bg-card);
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  transition: all var(--transition-base);
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
 }
 
-.game-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--primary-color);
-  opacity: 0;
-  transition: opacity var(--transition-base);
-}
-
-.game-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-4px);
-}
-
-.game-card:hover::before {
-  opacity: 1;
-}
-
-.gta4-card {
-  border-color: #f39c12;
-  background: linear-gradient(135deg, rgba(243, 156, 18, 0.05) 0%, rgba(243, 156, 18, 0.02) 100%);
-}
-
-.gta4-card:hover {
-  border-color: #e67e22;
-  box-shadow: 0 8px 25px rgba(243, 156, 18, 0.2);
-}
-
-.jc3-card {
-  border-color: #9b59b6;
-  background: linear-gradient(135deg, rgba(155, 89, 182, 0.05) 0%, rgba(155, 89, 182, 0.02) 100%);
-}
-
-.jc3-card:hover {
-  border-color: #8e44ad;
-  box-shadow: 0 8px 25px rgba(142, 68, 173, 0.2);
-}
-
-.game-info {
-  flex: 1;
-}
-
-.game-info h3 {
+.game-card .game-info h4 {
+  margin: 0 0 var(--space-2) 0;
   font-size: var(--font-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin-bottom: var(--space-2);
 }
 
-.game-directory {
+.game-card .game-info p {
+  margin: 0;
+  font-size: var(--font-sm);
   color: var(--text-muted);
-  font-size: var(--font-xs);
-  margin: var(--space-1) 0;
+}
+
+.game-card .game-directory {
   font-family: var(--font-family-mono);
   word-break: break-all;
 }
 
-.game-meta {
+.game-card .game-actions {
   display: flex;
-  gap: var(--space-4);
-  margin-top: var(--space-2);
-}
-
-.last-played, .play-time {
-  color: var(--text-light);
-  font-size: var(--font-xs);
-  font-weight: var(--font-medium);
-}
-
-.game-actions {
-  display: flex;
-  align-items: center;
   gap: var(--space-3);
 }
 
-/* 对话框样式美化 */
+.gta4-card {
+  border-left: 4px solid #f39c12;
+}
+
+.jc3-card {
+  border-left: 4px solid #9b59b6;
+}
+
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -888,48 +696,40 @@ onMounted(async () => {
   overflow: hidden;
   box-shadow: var(--shadow-2xl);
   border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5);
   border-bottom: 1px solid var(--border-color);
-  background: linear-gradient(135deg, var(--gray-50) 0%, var(--bg-secondary) 100%);
 }
 
 .dialog-header h3 {
   margin: 0;
-  color: var(--text-primary);
   font-size: var(--font-lg);
-  font-weight: var(--font-semibold);
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: var(--font-xl);
+  font-size: 1.8em;
   cursor: pointer;
   color: var(--text-muted);
-  padding: var(--space-1);
-  border-radius: var(--radius-full);
   transition: all var(--transition-base);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .close-btn:hover {
-  background: var(--gray-200);
   color: var(--text-primary);
   transform: rotate(90deg);
 }
 
 .dialog-body {
   padding: var(--space-6);
+  overflow-y: auto;
 }
 
 .form-group {
@@ -939,33 +739,11 @@ onMounted(async () => {
 .form-group label {
   display: block;
   margin-bottom: var(--space-2);
-  color: var(--text-secondary);
   font-weight: var(--font-semibold);
-  font-size: var(--font-sm);
 }
 
 .required {
   color: var(--error-color);
-}
-
-.form-input {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  font-size: var(--font-sm);
-  transition: all var(--transition-base);
-  background: var(--bg-secondary);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-}
-
-.form-input.error {
-  border-color: var(--error-color);
 }
 
 .directory-input {
@@ -973,57 +751,34 @@ onMounted(async () => {
   gap: var(--space-3);
 }
 
-.directory-input .form-input {
-  flex: 1;
-}
-
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5);
   border-top: 1px solid var(--border-color);
-  background: var(--gray-50);
+  background-color: var(--gray-50);
 }
 
 .empty-state {
   text-align: center;
   padding: var(--space-10);
   color: var(--text-muted);
+  background-color: var(--gray-50);
+  border-radius: var(--radius-md);
 }
 
-.empty-state h3 {
-  margin-bottom: var(--space-3);
-  color: var(--text-secondary);
-}
-
-.empty-state p {
-  margin-bottom: var(--space-4);
-}
-
-/* 游戏列表样式美化 */
 .games-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-4);
 }
 
-.game-item {
+.game-item .card-body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
-}
-
-.game-item:hover {
-  border-color: var(--primary-color);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  gap: var(--space-4);
 }
 
 .game-content {
@@ -1031,14 +786,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  cursor: pointer;
   min-width: 0;
 }
 
 .game-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, #2980b9 100%);
+  background: var(--primary-color);
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
@@ -1046,7 +800,7 @@ onMounted(async () => {
   font-weight: var(--font-bold);
   color: white;
   font-size: var(--font-xl);
-  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
 }
 
 .game-icon img {
@@ -1056,60 +810,44 @@ onMounted(async () => {
   border-radius: var(--radius-lg);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .game-item {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
-  }
-  
-  .game-actions {
-    justify-content: flex-end;
-    margin-top: var(--space-2);
-  }
-  
-  .dialog {
-    width: 95vw;
-    margin: var(--space-4);
-  }
-  
-  .game-card {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--space-4);
-  }
-  
-  .game-actions {
-    justify-content: center;
-  }
+.game-info {
+  flex: 1;
+  min-width: 0;
 }
 
-/* 错误消息样式 */
+.game-info h4 {
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-lg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-directory {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-meta {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  font-size: var(--font-xs);
+  color: var(--text-light);
+}
+
+.game-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
 .error-message {
   color: var(--error-color);
   font-size: var(--font-xs);
-  margin-top: var(--space-1);
-  font-weight: var(--font-medium);
-}
-
-/* 加载状态 */
-.btn-primary:disabled::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 16px;
-  height: 16px;
-  margin: -8px 0 0 -8px;
-  border: 2px solid transparent;
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  margin-top: var(--space-2);
 }
 </style>
