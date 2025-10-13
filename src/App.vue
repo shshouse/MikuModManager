@@ -31,17 +31,6 @@ function handleTabChange(tab: string) {
 <style>
 @import './styles/design-system.css';
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: var(--font-family);
-  background-color: var(--bg-primary);
-}
-
 #app {
   height: 100vh;
 }

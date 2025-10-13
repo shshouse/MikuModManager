@@ -1,6 +1,6 @@
 <template>
-  <div class="mod-manager-panel">
-    <div class="header">
+  <div class="mod-manager-panel panel">
+    <div class="panel-header">
       <h2>模组管理器</h2>
       <div class="actions">
         <button @click="refreshMods" class="btn btn-primary">刷新模组列表</button>
@@ -8,8 +8,8 @@
       </div>
     </div>
 
-    <div class="mods-container">
-      <div v-if="mods.length === 0" class="no-mods">
+    <div class="panel-body">
+      <div v-if="mods.length === 0" class="empty-state">
         <p>暂无模组，请将模组文件夹放置在 mod/ 目录下</p>
         <p>模组结构：mod/模组文件夹/mod.json + mod/模组文件</p>
       </div>
@@ -18,50 +18,52 @@
         <div 
           v-for="mod in mods" 
           :key="mod.id" 
-          class="mod-item"
+          class="card mod-item"
           :class="{ 'installed': mod.installed, 'conflict': mod.hasConflicts }"
         >
-          <div class="mod-info">
-            <h3>{{ mod.name }}</h3>
-            <div class="mod-meta">
-              <span class="version">版本: {{ mod.version }}</span>
-              <span class="author">作者: {{ mod.author }}</span>
-              <span class="game">游戏: {{ mod.game }}</span>
+          <div class="card-body">
+            <div class="mod-info">
+              <h3>{{ mod.name }}</h3>
+              <div class="mod-meta">
+                <span class="badge badge-secondary">版本: {{ mod.version }}</span>
+                <span class="badge badge-secondary">作者: {{ mod.author }}</span>
+                <span class="badge badge-info">游戏: {{ mod.game }}</span>
+              </div>
+              <p class="description">{{ mod.description }}</p>
+              
+              <div v-if="mod.dependencies.length > 0" class="dependencies">
+                <strong>依赖:</strong> {{ mod.dependencies.join(', ') }}
+              </div>
+              
+              <div v-if="mod.conflicts.length > 0" class="conflicts">
+                <strong>冲突:</strong> {{ mod.conflicts.join(', ') }}
+              </div>
+              
+              <div v-if="mod.installDate" class="install-info">
+                安装时间: {{ formatDate(mod.installDate) }}
+              </div>
             </div>
-            <p class="description">{{ mod.description }}</p>
-            
-            <div v-if="mod.dependencies.length > 0" class="dependencies">
-              <strong>依赖:</strong> {{ mod.dependencies.join(', ') }}
-            </div>
-            
-            <div v-if="mod.conflicts.length > 0" class="conflicts">
-              <strong>冲突:</strong> {{ mod.conflicts.join(', ') }}
-            </div>
-            
-            <div v-if="mod.installDate" class="install-info">
-              安装时间: {{ formatDate(mod.installDate) }}
-            </div>
-          </div>
 
-          <div class="mod-actions">
-            <button 
-              v-if="!mod.installed" 
-              @click="installMod(mod)" 
-              class="btn btn-primary"
-              :disabled="!canInstall(mod)"
-            >
-              安装
-            </button>
-            
-            <button 
-              v-else 
-              @click="uninstallMod(mod)" 
-              class="btn btn-danger"
-            >
-              卸载
-            </button>
-            
-            <button @click="viewModDetails(mod)" class="btn btn-secondary">详情</button>
+            <div class="mod-actions">
+              <button 
+                v-if="!mod.installed" 
+                @click="installMod(mod)" 
+                class="btn btn-primary"
+                :disabled="!canInstall(mod)"
+              >
+                安装
+              </button>
+              
+              <button 
+                v-else 
+                @click="uninstallMod(mod)" 
+                class="btn btn-error"
+              >
+                卸载
+              </button>
+              
+              <button @click="viewModDetails(mod)" class="btn btn-secondary">详情</button>
+            </div>
           </div>
         </div>
       </div>
@@ -83,7 +85,7 @@
             </div>
             <div class="detail-item">
               <label>版本:</label>
-              <span>{{ selectedMod.version }}</span>
+              <span class="badge badge-secondary">{{ selectedMod.version }}</span>
             </div>
             <div class="detail-item">
               <label>作者:</label>
@@ -91,7 +93,7 @@
             </div>
             <div class="detail-item">
               <label>游戏:</label>
-              <span>{{ selectedMod.game }}</span>
+              <span class="badge badge-info">{{ selectedMod.game }}</span>
             </div>
             <div class="detail-item">
               <label>安装路径:</label>
@@ -109,14 +111,14 @@
               </ul>
             </div>
             
-            <div v-if="selectedMod.dependencies.length > 0" class="detail-item">
+            <div vif="selectedMod.dependencies.length > 0" class="detail-item">
               <label>依赖模组:</label>
               <span>{{ selectedMod.dependencies.join(', ') }}</span>
             </div>
             
             <div v-if="selectedMod.conflicts.length > 0" class="detail-item">
               <label>冲突模组:</label>
-              <span>{{ selectedMod.conflicts.join(', ') }}</span>
+              <span class="text-error">{{ selectedMod.conflicts.join(', ') }}</span>
             </div>
             
             <div v-if="selectedMod.installDate" class="detail-item">
@@ -139,7 +141,7 @@
           <button 
             v-else 
             @click="uninstallMod(selectedMod)" 
-            class="btn btn-danger"
+            class="btn btn-error"
           >
             卸载
           </button>
@@ -686,30 +688,48 @@ async function showConflictResolutionDialog(
 </script>
 
 <style scoped>
-.mods-list {
-  display: grid;
-  gap: var(--space-4);
+.mod-manager-panel {
+  display: flex;
+  flex-direction: column;
 }
 
-.mod-item {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  background: var(--bg-card);
+.panel-header .actions {
   display: flex;
+  gap: var(--space-3);
+}
+
+.panel-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-10);
+  color: var(--text-muted);
+  background-color: var(--gray-50);
+  border-radius: var(--radius-md);
+}
+
+.mods-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-5);
+}
+
+.mod-item .card-body {
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start;
-  transition: all var(--transition-base);
+  height: 100%;
 }
 
 .mod-item.installed {
-  border-color: var(--success-color);
-  background: #f8fff9;
+  border-left: 4px solid var(--success-color);
 }
 
 .mod-item.conflict {
-  border-color: var(--error-color);
-  background: #fff5f5;
+  border-left: 4px solid var(--error-color);
 }
 
 .mod-info {
@@ -719,35 +739,48 @@ async function showConflictResolutionDialog(
 .mod-info h3 {
   margin: 0 0 var(--space-3) 0;
   color: var(--text-primary);
+  font-size: var(--font-lg);
 }
 
 .mod-meta {
   display: flex;
-  gap: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin-bottom: var(--space-3);
-  font-size: var(--font-sm);
-  color: var(--text-muted);
 }
 
 .description {
-  margin: var(--space-3) 0;
+  margin: var(--space-4) 0;
   color: var(--text-secondary);
+  font-size: var(--font-sm);
 }
 
 .dependencies, .conflicts, .install-info {
   font-size: var(--font-xs);
-  margin: var(--space-1) 0;
+  margin: var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.dependencies {
+  background-color: var(--gray-100);
 }
 
 .conflicts {
+  background-color: #fff0f0;
   color: var(--error-color);
+}
+
+.install-info {
+  color: var(--text-muted);
 }
 
 .mod-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 100px;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--border-color);
+  padding-top: var(--space-4);
 }
 
 /* 模态框样式 */
@@ -757,11 +790,12 @@ async function showConflictResolutionDialog(
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
@@ -787,19 +821,21 @@ async function showConflictResolutionDialog(
 .modal-header h3 {
   margin: 0;
   color: var(--text-primary);
+  font-size: var(--font-lg);
 }
 
 .btn-close {
   background: none;
   border: none;
-  font-size: 1.5em;
+  font-size: 1.8em;
   cursor: pointer;
   color: var(--text-muted);
-  transition: color var(--transition-base);
+  transition: all var(--transition-base);
 }
 
 .btn-close:hover {
   color: var(--text-primary);
+  transform: rotate(90deg);
 }
 
 .modal-body {
@@ -814,6 +850,7 @@ async function showConflictResolutionDialog(
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
+  background-color: var(--gray-50);
 }
 
 .mod-details {
@@ -825,12 +862,18 @@ async function showConflictResolutionDialog(
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .detail-item label {
   font-weight: var(--font-semibold);
   color: var(--text-primary);
+  font-size: var(--font-sm);
+}
+
+.detail-item span, .detail-item p {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
 }
 
 .file-list {
@@ -838,61 +881,18 @@ async function showConflictResolutionDialog(
   overflow-y: auto;
   background: var(--gray-50);
   padding: var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-base);
   font-family: var(--font-family-mono);
   font-size: var(--font-xs);
+  border: 1px solid var(--border-color);
 }
 
 .file-list li {
   margin: var(--space-1) 0;
 }
 
-/* 按钮样式 */
-.btn {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-base);
-  cursor: pointer;
-  font-size: var(--font-sm);
-  text-decoration: none;
-  display: inline-block;
-  transition: all var(--transition-base);
-}
-
-.btn-primary {
-  background: var(--primary-color);
-  color: var(--text-white);
-}
-
-.btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-primary:disabled {
-  background: var(--gray-300);
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--gray-400);
-  color: var(--text-white);
-}
-
-.btn-secondary:hover {
-  background: var(--gray-500);
-  transform: translateY(-1px);
-}
-
-.btn-danger {
-  background: var(--error-color);
-  color: var(--text-white);
-}
-
-.btn-danger:hover {
-  background: #c0392b;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-error);
+.text-error {
+  color: var(--error-color);
+  font-weight: var(--font-medium);
 }
 </style>
