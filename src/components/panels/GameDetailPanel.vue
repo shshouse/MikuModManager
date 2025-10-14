@@ -33,6 +33,9 @@ interface Backup {
   backupInfo?: {
     gameName: string
     gameVersion?: string
+    patchesInstalled?: string[]
+    patchOrder?: string[]
+    conflicts?: ConflictInfo[]
     backedUpFiles: BackupFile[]
     installedFiles: BackupFile[]
   }
@@ -100,13 +103,17 @@ async function loadGame() {
         
         // 尝试从game_status.json加载启动选项
         try {
-          const gameStatus = await invoke('read_game_status', { 
-            gameName: game.value.name 
-          }) as any
+          // 构建正确的game目录路径
+          const gameManagerPath = `${appDirectory.value}/game/${game.value.name}`
+          const gameStatusContent = await invoke('read_game_status', { 
+            gamePath: gameManagerPath
+          }) as string
           
-          if (gameStatus && gameStatus.launchOptions) {
-            game.value.launchOptions = gameStatus.launchOptions
-            launchOptions.value = gameStatus.launchOptions
+          const gameStatus = JSON.parse(gameStatusContent)
+          
+          if (gameStatus && gameStatus.launch_options) {
+            game.value.launchOptions = gameStatus.launch_options
+            launchOptions.value = gameStatus.launch_options
             console.log('Loaded launch options from game_status.json for:', game.value.name)
           } else {
             // 如果没有从game_status.json加载到，使用localStorage中的值
@@ -269,9 +276,11 @@ async function saveLaunchOptions() {
     
     // Update in game_status.json
     try {
+      const gameManagerPath = `${appDirectory.value}/game/${game.value.name}`
       await invoke('update_game_status', {
-        gameName: game.value.name,
-        launchOptions: game.value.launchOptions
+        gamePath: gameManagerPath,
+        launchOptions: game.value.launchOptions,
+        installedMods: null
       })
       console.log('Updated launch options in game_status.json for:', game.value.name)
     } catch (error) {
@@ -314,14 +323,13 @@ async function launchGame() {
   }
 }
 
-// Calculate MD5 hash of a file (simplified implementation using file size for demo)
+// Calculate MD5 hash of a file
 async function calculateFileHash(filePath: string): Promise<string> {
   try {
-    // In a real implementation, you would compute a proper hash (MD5, SHA1, etc.)
-    // For simplicity, we're using file size as a basic identifier
-    const fileSize = await invoke('get_file_size', { path: filePath }).catch(() => 0)
-    return `size:${fileSize}`
-  } catch {
+    const hash = await invoke('calculate_file_md5', { path: filePath }) as string
+    return hash
+  } catch (error) {
+    console.warn('Failed to calculate MD5 hash for', filePath, ':', error)
     return 'unknown'
   }
 }
@@ -390,8 +398,66 @@ async function createBackupInfo(
   return backupInfo
 }
 
+// 检测文件冲突
+interface ConflictInfo {
+  file: string
+  patches: string[]
+}
+
+async function detectConflicts(): Promise<ConflictInfo[]> {
+  if (!game.value) return []
+  
+  const fileMap = new Map<string, string[]>()
+  
+  // 扫描所有选中的补丁，记录每个文件被哪些补丁修改
+  for (const patchName of selectedPatches.value) {
+    const patch = patches.value.find(p => p.name === patchName)
+    if (!patch) continue
+    
+    try {
+      const patchFiles = await invoke('get_all_files', { path: patch.path }) as string[]
+      
+      for (const file of patchFiles) {
+        const relativePath = file.replace(patch.path, '').replace(/^[/\\]/, '')
+        
+        if (!fileMap.has(relativePath)) {
+          fileMap.set(relativePath, [])
+        }
+        fileMap.get(relativePath)!.push(patchName)
+      }
+    } catch (error) {
+      console.error(`Failed to scan patch ${patchName}:`, error)
+    }
+  }
+  
+  // 找出冲突（同一文件被多个补丁修改）
+  const conflicts: ConflictInfo[] = []
+  for (const [file, patchList] of fileMap.entries()) {
+    if (patchList.length > 1) {
+      conflicts.push({ file, patches: patchList })
+    }
+  }
+  
+  return conflicts
+}
+
 async function installPatches() {
   if (selectedPatches.value.size === 0 || !game.value) return
+  
+  // 检测冲突
+  const conflicts = await detectConflicts()
+  if (conflicts.length > 0) {
+    const conflictMsg = conflicts.map(c => 
+      `文件 "${c.file}" 被以下补丁同时修改：\n  ${c.patches.join(', ')}`
+    ).join('\n\n')
+    
+    const proceed = confirm(
+      `检测到 ${conflicts.length} 个文件冲突：\n\n${conflictMsg}\n\n` +
+      `后安装的补丁将覆盖先安装的补丁文件。\n是否继续安装？`
+    )
+    
+    if (!proceed) return
+  }
   
   isLoading.value = true
   
@@ -412,8 +478,10 @@ async function installPatches() {
     
     const backedUpFiles: string[] = []
     const installedFiles: string[] = []
+    const patchOrder: string[] = [] // 记录补丁安装顺序
     
     for (const patchName of selectedPatches.value) {
+      patchOrder.push(patchName)
       const patch = patches.value.find(p => p.name === patchName)
       if (!patch) continue
       
@@ -428,15 +496,23 @@ async function installPatches() {
         // Check if target file exists and backup if needed
         const targetExists = await invoke('file_exists', { path: targetPath })
         if (targetExists) {
-          await invoke('create_directory', { path: backupPath.substring(0, backupPath.lastIndexOf('/')) })
-          await invoke('copy_file', { from: targetPath, to: backupPath })
-          backedUpFiles.push(backupPath)
+          // 只备份第一次遇到的文件（原始文件）
+          const alreadyBackedUp = backedUpFiles.some(f => f === backupPath)
+          if (!alreadyBackedUp) {
+            await invoke('create_directory', { path: backupPath.substring(0, backupPath.lastIndexOf('/')) })
+            await invoke('copy_file', { from: targetPath, to: backupPath })
+            backedUpFiles.push(backupPath)
+          }
         }
         
         // Copy patch file to target
         await invoke('create_directory', { path: targetPath.substring(0, targetPath.lastIndexOf('/')) })
         await invoke('copy_file', { from: file, to: targetPath })
-        installedFiles.push(targetPath)
+        
+        // 记录安装的文件（避免重复）
+        if (!installedFiles.includes(targetPath)) {
+          installedFiles.push(targetPath)
+        }
       }
     }
     
@@ -445,10 +521,14 @@ async function installPatches() {
       game.value.name,
       game.value.directory,
       backupDir,
-      Array.from(selectedPatches.value),
+      patchOrder,
       backedUpFiles,
       installedFiles
     )
+    
+    // 添加冲突信息到备份
+    backupInfo.conflicts = conflicts
+    backupInfo.patchOrder = patchOrder
     
     // Save backup info
     await invoke('write_file', {
@@ -460,7 +540,11 @@ async function installPatches() {
     selectedPatches.value.clear()
     await scanBackups()
     
-    alert('补丁安装完成！\n备份已创建，包含文件完整性验证信息。')
+    const conflictWarning = conflicts.length > 0 
+      ? `\n\n注意：检测到 ${conflicts.length} 个文件冲突，已按补丁顺序覆盖安装。` 
+      : ''
+    
+    alert(`补丁安装完成！${conflictWarning}\n\n已创建备份并记录：\n- ${backedUpFiles.length} 个原始文件\n- ${installedFiles.length} 个安装文件\n- 完整的MD5哈希验证信息`)
   } catch (error) {
     console.error('Failed to install patches:', error)
     alert('补丁安装失败：' + error)
@@ -469,14 +553,21 @@ async function installPatches() {
   }
 }
 
-// Verify file integrity by comparing hashes
+// Verify file integrity by comparing MD5 hashes
 async function verifyFileIntegrity(filePath: string, expectedHash: string): Promise<boolean> {
   try {
+    if (expectedHash === 'unknown') return true // Skip verification if hash is unknown
+    
     const actualHash = await calculateFileHash(filePath)
-    // For demo purposes, we're using a simple size check
-    // In a real implementation, you would compare proper cryptographic hashes
-    return actualHash === expectedHash || expectedHash === 'unknown'
-  } catch {
+    const isValid = actualHash === expectedHash
+    
+    if (!isValid) {
+      console.warn(`Hash mismatch for ${filePath}: expected ${expectedHash}, got ${actualHash}`)
+    }
+    
+    return isValid
+  } catch (error) {
+    console.error('Failed to verify file integrity:', error)
     return false
   }
 }
@@ -560,6 +651,33 @@ async function rollbackToBackup() {
     alert('回滚失败：' + error)
   } finally {
     isLoading.value = false
+  }
+}
+
+async function openPatchDirectory() {
+  if (!game.value) return
+  
+  const patchDir = `${appDirectory.value}/game/${game.value.name}/patch`
+  
+  try {
+    await invoke('open_directory', { path: patchDir })
+  } catch (error) {
+    console.error('Failed to open patch directory:', error)
+    alert('打开补丁目录失败：' + error)
+  }
+}
+
+async function openBackupDirectory() {
+  if (!selectedBackup.value) return
+  
+  const backup = backups.value.find(b => b.name === selectedBackup.value)
+  if (!backup) return
+  
+  try {
+    await invoke('open_directory', { path: backup.path })
+  } catch (error) {
+    console.error('Failed to open backup directory:', error)
+    alert('打开备份目录失败：' + error)
   }
 }
 
@@ -716,6 +834,12 @@ function goBack() {
                   <span v-if="isLoading">安装中...</span>
                   <span v-else>安装选中补丁 ({{ selectedPatches.size }})</span>
                 </button>
+                <button 
+                  @click="openPatchDirectory"
+                  class="btn btn-secondary"
+                >
+                  📁 打开补丁目录
+                </button>
               </div>
             </div>
           </div>
@@ -748,6 +872,18 @@ function goBack() {
                   >
                   <div class="backup-info">
                     <span class="backup-name">{{ backup.timestamp }}</span>
+                    <div v-if="backup.backupInfo" class="backup-details">
+                      <small v-if="backup.backupInfo.patchesInstalled && backup.backupInfo.patchesInstalled.length > 0">
+                        📦 安装的补丁: {{ backup.backupInfo.patchesInstalled.join(', ') }}
+                      </small>
+                      <small v-if="backup.backupInfo.conflicts && backup.backupInfo.conflicts.length > 0" class="conflict-warning">
+                        ⚠️ 包含 {{ backup.backupInfo.conflicts.length }} 个文件冲突
+                      </small>
+                      <small>
+                        💾 备份: {{ backup.backupInfo.backedUpFiles.length }} 个文件 | 
+                        📥 安装: {{ backup.backupInfo.installedFiles.length }} 个文件
+                      </small>
+                    </div>
                     <small class="backup-path">{{ backup.path }}</small>
                   </div>
                 </div>
@@ -760,6 +896,13 @@ function goBack() {
                 >
                   <span v-if="isLoading">回滚中...</span>
                   <span v-else>回滚到选中备份</span>
+                </button>
+                <button 
+                  v-if="selectedBackup"
+                  @click="openBackupDirectory"
+                  class="btn btn-secondary"
+                >
+                  📁 打开备份目录
                 </button>
               </div>
             </div>
@@ -943,9 +1086,33 @@ function goBack() {
   font-family: var(--font-family-mono);
 }
 
+.backup-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-color);
+}
+
+.backup-details small {
+  display: block;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+}
+
+.conflict-warning {
+  color: var(--warning-color) !important;
+  font-weight: var(--font-semibold);
+}
+
 .install-actions, .rollback-actions {
   display: flex;
   justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .btn-sm {

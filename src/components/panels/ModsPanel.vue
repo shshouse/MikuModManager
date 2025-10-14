@@ -4,13 +4,12 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 
 const emit = defineEmits<{
-  'navigate-to-game': [gameId: string]
   'open-game': [gameId: string]
   'open-mod-manager': []
 }>()
 
 function navigateToGame(gameId: string) {
-  emit('navigate-to-game', gameId)
+  emit('open-game', gameId)
 }
 
 interface CustomGame {
@@ -419,13 +418,13 @@ onMounted(async () => {
     <div class="panel-header">
       <h2>游戏列表</h2>
       <div class="header-actions">
-        <button class="btn btn-primary" @click="showAddGameDialog">
-          添加游戏
-        </button>
-        <div class="stats">
-          <span class="stat-item">已添加游戏: {{ games.length }}</span>
+          <button class="btn btn-primary" @click.stop="showAddGameDialog" style="cursor: pointer;">
+            添加游戏
+          </button>
+          <div class="stats">
+            <span class="stat-item">已添加游戏: {{ games.length }}</span>
+          </div>
         </div>
-      </div>
     </div>
 
     <div class="panel-body">
@@ -434,9 +433,9 @@ onMounted(async () => {
         <h3>特别支持</h3>
         <div class="supported-games-grid">
           <!-- GTA4 游戏卡片 -->
-          <div class="card game-card gta4-card" @click="scanGTA4">
+          <div class="card game-card gta4-card">
             <div class="card-body">
-              <div class="game-info">
+              <div class="game-info" @click="scanGTA4" style="cursor: pointer;">
                 <h4>GTAIV</h4>
                 <p v-if="gta4Status === 'scanning'">正在扫描安装路径...</p>
                 <p v-else-if="gta4Status === 'found'" class="game-directory">已找到: {{ gta4Path }}</p>
@@ -455,9 +454,9 @@ onMounted(async () => {
           </div>
           
           <!-- 正当防卫3 游戏卡片 -->
-          <div class="card game-card jc3-card" @click="scanJC3">
+          <div class="card game-card jc3-card">
             <div class="card-body">
-              <div class="game-info">
+              <div class="game-info" @click="scanJC3" style="cursor: pointer;">
                 <h4>Just Cause 3</h4>
                 <p v-if="jc3Status === 'scanning'">正在扫描安装路径...</p>
                 <p v-else-if="jc3Status === 'found'" class="game-directory">已找到: {{ jc3Path }}</p>
@@ -514,7 +513,7 @@ onMounted(async () => {
                     class="form-input"
                     :class="{ error: errors.directory }"
                   >
-                  <button @click="selectDirectory" class="btn btn-secondary">
+                  <button @click.stop="selectDirectory" class="btn btn-secondary" style="cursor: pointer;">
                     浏览
                   </button>
                 </div>
@@ -525,14 +524,15 @@ onMounted(async () => {
             
             <div class="dialog-actions">
               <button 
-                @click="addGame" 
+                @click.stop="addGame" 
                 class="btn btn-primary"
                 :disabled="!isFormValid || isLoading"
+                style="cursor: pointer;"
               >
                 <span v-if="isLoading">添加中...</span>
                 <span v-else>添加游戏</span>
               </button>
-              <button @click="cancelAdd" class="btn btn-secondary">取消</button>
+              <button @click.stop="cancelAdd" class="btn btn-secondary" style="cursor: pointer;">取消</button>
             </div>
           </div>
         </div>
@@ -544,9 +544,9 @@ onMounted(async () => {
             <p>点击上方按钮添加您的第一个游戏</p>
           </div>
           
-          <div v-for="game in games" :key="game.id" class="card game-item" @click="navigateToGame(game.id)">
+          <div v-for="game in games" :key="game.id" class="card game-item">
             <div class="card-body">
-              <div class="game-content">
+              <div class="game-content" @click="navigateToGame(game.id)" style="cursor: pointer;">
                 <div class="game-icon">
                   <span v-if="!game.icon">G</span>
                   <img v-else :src="game.icon" :alt="game.name">
