@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::io::Read;
 use serde::{Deserialize, Serialize};
 
 #[cfg(target_os = "windows")]
@@ -544,6 +545,19 @@ fn find_game_executable(game_dir: &Path) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
+fn calculate_file_md5(path: String) -> Result<String, String> {
+    let mut file = fs::File::open(&path)
+        .map_err(|e| format!("Failed to open file: {}", e))?;
+    
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+    
+    let hash = md5::compute(&buffer);
+    Ok(format!("{:x}", hash))
+}
+
+#[tauri::command]
 fn open_url_in_browser(url: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
@@ -600,6 +614,7 @@ pub fn run() {
             scan_jc3_path,
             get_jc3_mod_info,
             launch_game,
+            calculate_file_md5,
             open_url_in_browser,
             create_game_status,
             read_game_status,
