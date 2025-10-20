@@ -197,136 +197,6 @@ fn read_file(path: String) -> Result<String, String> {
     }
 }
 
-#[tauri::command]
-fn scan_gta4_path() -> Result<Vec<String>, String> {
-    let mut gta4_paths = Vec::new();
-    
-
-    
-
-    
-    // 如果没有找到，尝试扫描注册表（Windows）
-    if gta4_paths.is_empty() {
-        if let Ok(registry_path) = scan_registry_for_gta4() {
-            let registry_gta4_path = PathBuf::from(&registry_path);
-            // 检查GTAIV子目录
-            let registry_gtaiv_subdir = registry_gta4_path.join("GTAIV");
-            if registry_gtaiv_subdir.exists() {
-                gta4_paths.push(registry_gtaiv_subdir.to_string_lossy().to_string());
-            } else {
-                gta4_paths.push(registry_path);
-            }
-        }
-    }
-    
-    Ok(gta4_paths)
-}
-
-#[cfg(target_os = "windows")]
-fn scan_registry_for_gta4() -> Result<String, String> {
-    use winreg::enums::*;
-    use winreg::RegKey;
-    
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    
-    // 尝试Steam注册表路径
-    if let Ok(steam_key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 12210") {
-        if let Ok(install_location) = steam_key.get_value::<String, _>("InstallLocation") {
-            return Ok(install_location);
-        }
-    }
-    
-    // 根据系统架构选择注册表路径
-    // 检查是否为64位系统
-    let is_64_bit = std::env::consts::ARCH == "x86_64" || std::env::consts::ARCH == "aarch64";
-    
-    let rockstar_reg_path = if is_64_bit {
-        // 64位系统使用WOW6432Node路径
-        "SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto IV"
-    } else {
-        // 32位系统直接使用Rockstar Games路径
-        "SOFTWARE\\Rockstar Games\\Grand Theft Auto IV"
-    };
-    
-    // 尝试从Rockstar Games注册表路径读取
-    if let Ok(rockstar_key) = hklm.open_subkey(rockstar_reg_path) {
-        if let Ok(install_dir) = rockstar_key.get_value::<String, _>("InstallFolder") {
-            return Ok(install_dir);
-        }
-    }
-    
-    Err("未在注册表中找到GTA4安装路径".to_string())
-}
-
-#[cfg(not(target_os = "windows"))]
-fn scan_registry_for_gta4() -> Result<String, String> {
-    Err("非Windows系统不支持注册表扫描".to_string())
-}
-
-#[tauri::command]
-fn get_gta4_mod_info(game_path: String) -> Result<serde_json::Value, String> {
-    let gta4_path = PathBuf::from(&game_path);
-    
-    if !gta4_path.exists() {
-        return Err("GTA4路径不存在".to_string());
-    }
-    
-    let mut mod_info = serde_json::json!({
-        "game_name": "GTAIV",
-        "game_path": game_path,
-        "mod_folders": [],
-    });
-    
-    // 检查常见的模组文件夹
-    let existing_folders: Vec<String> = Vec::new();
-    mod_info["mod_folders"] = serde_json::json!(existing_folders);
-    
-    Ok(mod_info)
-}
-
-#[tauri::command]
-fn scan_jc3_path() -> Result<Vec<String>, String> {
-    let mut jc3_paths = Vec::new();
-    
-    // 如果没有找到，尝试扫描注册表（Windows）
-    if jc3_paths.is_empty() {
-        if let Ok(registry_path) = scan_registry_for_jc3() {
-            jc3_paths.push(registry_path);
-        }
-    }
-    
-    Ok(jc3_paths)
-}
-
-#[cfg(target_os = "windows")]
-fn scan_registry_for_jc3() -> Result<String, String> {
-    use winreg::enums::*;
-    use winreg::RegKey;
-    
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    
-    // 尝试Steam注册表路径
-    if let Ok(steam_key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 225540") {
-        if let Ok(install_location) = steam_key.get_value::<String, _>("InstallLocation") {
-            return Ok(install_location);
-        }
-    }
-    
-    // 尝试Epic Games注册表路径
-    if let Ok(epic_key) = hklm.open_subkey("SOFTWARE\\WOW6432Node\\Epic Games\\EpicGamesLauncher\\Apps\\JustCause3") {
-        if let Ok(install_location) = epic_key.get_value::<String, _>("InstallLocation") {
-            return Ok(install_location);
-        }
-    }
-    
-    Err("未在注册表中找到正当防卫3安装路径".to_string())
-}
-
-#[cfg(not(target_os = "windows"))]
-fn scan_registry_for_jc3() -> Result<String, String> {
-    Err("非Windows系统不支持注册表扫描".to_string())
-}
-
 // GameStatus 结构体定义
 #[derive(Debug, Serialize, Deserialize)]
 struct GameStatus {
@@ -460,27 +330,6 @@ fn scan_games_for_status(app_dir: String) -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
-fn get_jc3_mod_info(game_path: String) -> Result<serde_json::Value, String> {
-    let jc3_path = PathBuf::from(&game_path);
-    
-    if !jc3_path.exists() {
-        return Err("正当防卫3路径不存在".to_string());
-    }
-    
-    let mut mod_info = serde_json::json!({
-        "game_name": "Just Cause 3",
-        "game_path": game_path,
-        "mod_folders": [],
-    });
-    
-    // 检查常见的模组文件夹
-    let existing_folders: Vec<String> = Vec::new();
-    mod_info["mod_folders"] = serde_json::json!(existing_folders);
-    
-    Ok(mod_info)
-}
-
-#[tauri::command]
 fn launch_game(game_path: String, launch_options: String) -> Result<String, String> {
     let game_dir = PathBuf::from(&game_path);
     
@@ -507,10 +356,6 @@ fn launch_game(game_path: String, launch_options: String) -> Result<String, Stri
 fn find_game_executable(game_dir: &Path) -> Result<PathBuf, String> {
     // 常见的游戏可执行文件名
     let possible_exes = vec![
-        "JustCause3.exe",
-        "JC3.exe", 
-        "GTAIV.exe",
-        "LaunchGTAIV.exe",
         "game.exe"
     ];
     
@@ -609,10 +454,6 @@ pub fn run() {
             write_file,
             read_file,
             open_directory,
-            scan_gta4_path,
-            get_gta4_mod_info,
-            scan_jc3_path,
-            get_jc3_mod_info,
             launch_game,
             calculate_file_md5,
             open_url_in_browser,
