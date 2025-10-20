@@ -34,14 +34,6 @@ const errors = ref({
 })
 const isLoading = ref(false)
 
-// 支持的游戏状态
-const gta4Status = ref<'idle' | 'scanning' | 'found' | 'not-found'>('idle')
-const gta4Path = ref('')
-const gta4ModInfo = ref<any>(null)
-
-const jc3Status = ref<'idle' | 'scanning' | 'found' | 'not-found'>('idle')
-const jc3Path = ref('')
-const jc3ModInfo = ref<any>(null)
 
 const isFormValid = computed(() => {
   return newGame.value.name.trim() && 
@@ -244,137 +236,8 @@ function formatPlayTime(minutes: number): string {
   return remainingHours > 0 ? `${days}天${remainingHours}小时` : `${days}天`
 }
 
-// GTA4相关函数
-async function scanGTA4() {
-  gta4Status.value = 'scanning'
-  try {
-    // 检查invoke函数是否可用（在浏览器环境中可能不可用）
-    if (typeof window !== 'undefined' && !(window as any).__TAURI__) {
-      console.warn('Tauri environment not detected - skipping backend operations')
-      gta4Status.value = 'not-found'
-      return
-    }
-    
-    const paths = await invoke('scan_gta4_path') as string[]
-    if (paths.length > 0) {
-      gta4Path.value = paths[0]
-      gta4Status.value = 'found'
-      
-      // 获取GTA4模组信息
-      try {
-        gta4ModInfo.value = await invoke('get_gta4_mod_info', { gamePath: paths[0] })
-      } catch (error) {
-        console.error('Failed to get GTA4 mod info:', error)
-      }
-    } else {
-      gta4Status.value = 'not-found'
-    }
-  } catch (error) {
-    console.error('Failed to scan GTA4 path:', error)
-    gta4Status.value = 'not-found'
-  }
-}
 
-function openGTA4ModManager() {
-  if (gta4Path.value) {
-    // 确保路径包含GTAIV子目录
-    let finalPath = gta4Path.value;
-    
-    // 检查路径是否已经包含GTAIV子目录
-    if (!finalPath.endsWith('\\GTAIV') && !finalPath.endsWith('/GTAIV')) {
-      // 检查路径末尾是否有斜杠
-      if (finalPath.endsWith('\\') || finalPath.endsWith('/')) {
-        finalPath += 'GTAIV';
-      } else {
-        // 根据操作系统使用适当的路径分隔符
-        const separator = finalPath.includes('\\') ? '\\' : '/';
-        finalPath += separator + 'GTAIV';
-      }
-    }
-    
-    // 创建一个临时的GTA4游戏对象并导航到游戏详情页面
-    const gta4Game: CustomGame = {
-      id: 'gta4-special',
-      name: 'GTAIV',
-      directory: finalPath,
-      lastPlayed: undefined,
-      playTime: 0
-    }
-    
-    // 将GTA4添加到游戏列表（如果不存在）
-    const existingGTA4 = games.value.find((g: any) => g.id === 'gta4-special')
-    if (!existingGTA4) {
-      games.value.unshift(gta4Game)
-      saveGames()
-    } else {
-      // 更新现有GTA4游戏的路径，确保始终使用正确的路径
-      existingGTA4.directory = finalPath
-      saveGames()
-    }
-    
-    navigateToGame('gta4-special')
-  }
-}
-
-// 正当防卫3相关函数
-async function scanJC3() {
-  jc3Status.value = 'scanning'
-  try {
-    // 检查invoke函数是否可用（在浏览器环境中可能不可用）
-    if (typeof window !== 'undefined' && !(window as any).__TAURI__) {
-      console.warn('Tauri environment not detected - skipping backend operations')
-      jc3Status.value = 'not-found'
-      return
-    }
-    
-    const paths = await invoke('scan_jc3_path') as string[]
-    if (paths.length > 0) {
-      jc3Path.value = paths[0]
-      jc3Status.value = 'found'
-      
-      // 获取正当防卫3模组信息
-      try {
-        jc3ModInfo.value = await invoke('get_jc3_mod_info', { gamePath: paths[0] })
-      } catch (error) {
-        console.error('Failed to get JC3 mod info:', error)
-      }
-    } else {
-      jc3Status.value = 'not-found'
-    }
-  } catch (error) {
-    console.error('Failed to scan JC3 path:', error)
-    jc3Status.value = 'not-found'
-  }
-}
-
-function openJC3ModManager() {
-  if (jc3Path.value) {
-    // 创建一个临时的正当防卫3游戏对象并导航到游戏详情页面
-    const jc3Game: CustomGame = {
-      id: 'jc3-special',
-      name: 'Just Cause 3',
-      directory: jc3Path.value,
-      lastPlayed: undefined,
-      playTime: 0,
-      launchOptions: '--vfs-fs dropzone --vfs-archive patch_win64 --vfs-archive archives_win64 --vfs-fs' // 为Just Cause 3设置默认启动选项
-    }
-    
-    // 将正当防卫3添加到游戏列表（如果不存在）
-    const existingJC3 = games.value.find((g: any) => g.id === 'jc3-special')
-    if (!existingJC3) {
-      games.value.unshift(jc3Game)
-      saveGames()
-    } else {
-      // 更新现有正当防卫3游戏的路径，确保始终使用正确的路径
-      existingJC3.directory = jc3Path.value
-      saveGames()
-    }
-    
-    navigateToGame('jc3-special')
-  }
-}
-
-// 组件挂载时自动扫描支持的游戏和加载游戏
+// 组件挂载时加载游戏
 onMounted(async () => {
   loadGames()
   
@@ -383,9 +246,6 @@ onMounted(async () => {
     console.warn('Tauri environment not detected - skipping backend operations')
     return
   }
-  
-  scanGTA4()
-  scanJC3()
   
   // 扫描并创建缺失的game_status.json文件
   try {
@@ -428,54 +288,6 @@ onMounted(async () => {
     </div>
 
     <div class="panel-body">
-      <!-- 特别支持游戏模块 -->
-      <div class="module-section">
-        <h3>特别支持</h3>
-        <div class="supported-games-grid">
-          <!-- GTA4 游戏卡片 -->
-          <div class="card game-card gta4-card">
-            <div class="card-body">
-              <div class="game-info" @click="scanGTA4" style="cursor: pointer;">
-                <h4>GTAIV</h4>
-                <p v-if="gta4Status === 'scanning'">正在扫描安装路径...</p>
-                <p v-else-if="gta4Status === 'found'" class="game-directory">已找到: {{ gta4Path }}</p>
-                <p v-else-if="gta4Status === 'not-found'">未找到游戏</p>
-                <p v-else>点击扫描</p>
-              </div>
-              <div class="game-actions">
-                <button v-if="gta4Status === 'found'" @click.stop="openGTA4ModManager" class="btn btn-primary">
-                  管理
-                </button>
-                <button @click.stop="scanGTA4" class="btn btn-secondary" :disabled="gta4Status === 'scanning'">
-                  {{ gta4Status === 'scanning' ? '...' : '扫描' }}
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 正当防卫3 游戏卡片 -->
-          <div class="card game-card jc3-card">
-            <div class="card-body">
-              <div class="game-info" @click="scanJC3" style="cursor: pointer;">
-                <h4>Just Cause 3</h4>
-                <p v-if="jc3Status === 'scanning'">正在扫描安装路径...</p>
-                <p v-else-if="jc3Status === 'found'" class="game-directory">已找到: {{ jc3Path }}</p>
-                <p v-else-if="jc3Status === 'not-found'">未找到游戏</p>
-                <p v-else>点击扫描</p>
-              </div>
-              <div class="game-actions">
-                <button v-if="jc3Status === 'found'" @click.stop="openJC3ModManager" class="btn btn-primary">
-                  管理
-                </button>
-                <button @click.stop="scanJC3" class="btn btn-secondary" :disabled="jc3Status === 'scanning'">
-                  {{ jc3Status === 'scanning' ? '...' : '扫描' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 自定义游戏模块 -->
       <div class="module-section">
         <h3>自定义游戏</h3>
@@ -628,49 +440,6 @@ onMounted(async () => {
   font-weight: var(--font-semibold);
   padding-bottom: var(--space-3);
   border-bottom: 2px solid var(--primary-color);
-}
-
-.supported-games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-5);
-}
-
-.game-card .card-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--space-4);
-  cursor: pointer;
-}
-
-.game-card .game-info h4 {
-  margin: 0 0 var(--space-2) 0;
-  font-size: var(--font-lg);
-}
-
-.game-card .game-info p {
-  margin: 0;
-  font-size: var(--font-sm);
-  color: var(--text-muted);
-}
-
-.game-card .game-directory {
-  font-family: var(--font-family-mono);
-  word-break: break-all;
-}
-
-.game-card .game-actions {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.gta4-card {
-  border-left: 4px solid #f39c12;
-}
-
-.jc3-card {
-  border-left: 4px solid #9b59b6;
 }
 
 .dialog-overlay {

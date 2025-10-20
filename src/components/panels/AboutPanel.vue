@@ -61,7 +61,7 @@ function openLink(url: string) {
                 </div> 
                 <div class="info-item">
                   <span class="label">图标来自:</span>
-                  <span class="value">{{ appInfo.image }}</span>
+                  <span class="value">なの</span>
                 </div>
               </div>
             </div>
