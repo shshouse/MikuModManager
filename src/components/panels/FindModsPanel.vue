@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
-const websiteUrl = 'https://mikumod.shshouse.icu'
+const websiteUrl = '未上线，开发中'
 const isOpening = ref(false)
 
 async function openInBrowser() {
@@ -37,8 +37,8 @@ async function openInBrowser() {
           </div>
           
           <div class="browser-text">
-            <h3>寻找游戏模组</h3>
-            <p>点击下方按钮前往MikuMod获取您需要的模组，丰富您的游戏体验</p>
+            <h3>MikuMod，开放的中文游戏模组社区</h3>
+            <p>点击下方按钮跳转MikuMod模组社区，欢迎来聊天！</p>
             <p class="website-url">{{ websiteUrl }}</p>
           </div>
           

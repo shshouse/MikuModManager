@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
+import { searchGames, fetchGameById } from '../../utils/supabase'
+import type { MikuGameListItem } from '../../types/mikugame'
 
 interface CustomGame {
   id: string
@@ -66,7 +68,13 @@ const isEditingLaunchOptions = ref(false)
 const currentImageIndex = ref(0)
 const showImageViewer = ref(false)
 
-// Removed unused computed property
+// MikuGame 绑定相关
+const showMikuGameSearch = ref(false)
+const mikuGameSearchKeyword = ref('')
+const mikuGameSearchResults = ref<MikuGameListItem[]>([])
+const selectedMikuGame = ref<MikuGameListItem | null>(null)
+const isSearchingMikuGame = ref(false)
+const isEditingBinding = ref(false)
 
 const appDirectory = ref('')
 
@@ -717,6 +725,124 @@ function prevImage() {
 function getImageUrl(url: string): string {
   return url || ''
 }
+
+// MikuGame 绑定功能
+async function searchMikuGames() {
+  if (!mikuGameSearchKeyword.value.trim()) {
+    return
+  }
+  
+  isSearchingMikuGame.value = true
+  try {
+    const results = await searchGames(mikuGameSearchKeyword.value)
+    mikuGameSearchResults.value = results
+  } catch (error) {
+    console.error('搜索MikuGame失败:', error)
+    alert('搜索失败: ' + error)
+  } finally {
+    isSearchingMikuGame.value = false
+  }
+}
+
+function selectMikuGame(mikuGame: MikuGameListItem) {
+  selectedMikuGame.value = mikuGame
+  showMikuGameSearch.value = false
+}
+
+function clearMikuGameSelection() {
+  selectedMikuGame.value = null
+  mikuGameSearchKeyword.value = ''
+  mikuGameSearchResults.value = []
+}
+
+function startEditBinding() {
+  isEditingBinding.value = true
+  showMikuGameSearch.value = false
+  selectedMikuGame.value = null
+  mikuGameSearchKeyword.value = ''
+  mikuGameSearchResults.value = []
+}
+
+function cancelEditBinding() {
+  isEditingBinding.value = false
+  showMikuGameSearch.value = false
+  clearMikuGameSelection()
+}
+
+async function saveBinding() {
+  if (!game.value) return
+  
+  try {
+    // 更新绑定信息
+    if (selectedMikuGame.value) {
+      game.value.mikuGameId = selectedMikuGame.value.id
+      game.value.mikuGameType = selectedMikuGame.value.game_type
+      
+      // 获取并更新图片URL
+      try {
+        const mikuGameData = await fetchGameById(selectedMikuGame.value.id, selectedMikuGame.value.game_type)
+        if (mikuGameData && mikuGameData.image_urls && mikuGameData.image_urls.length > 0) {
+          game.value.images = mikuGameData.image_urls
+          game.value.coverImage = mikuGameData.image_urls[0]
+          console.log('已更新游戏图片URL:', mikuGameData.image_urls)
+        }
+      } catch (error) {
+        console.error('获取MikuGame图片URL失败:', error)
+      }
+    } else {
+      // 解除绑定
+      game.value.mikuGameId = undefined
+      game.value.mikuGameType = undefined
+    }
+    
+    // 保存到 localStorage
+    const saved = localStorage.getItem('customGames')
+    if (saved) {
+      const games: CustomGame[] = JSON.parse(saved)
+      const index = games.findIndex(g => g.id === props.gameId)
+      if (index > -1) {
+        games[index] = game.value
+        localStorage.setItem('customGames', JSON.stringify(games))
+      }
+    }
+    
+    isEditingBinding.value = false
+    clearMikuGameSelection()
+    alert('绑定已更新')
+  } catch (error) {
+    console.error('保存绑定失败:', error)
+    alert('保存失败: ' + error)
+  }
+}
+
+async function unbindMikuGame() {
+  if (!game.value) return
+  
+  if (!confirm('确定要解除 MikuGame 绑定吗？')) {
+    return
+  }
+  
+  try {
+    game.value.mikuGameId = undefined
+    game.value.mikuGameType = undefined
+    
+    // 保存到 localStorage
+    const saved = localStorage.getItem('customGames')
+    if (saved) {
+      const games: CustomGame[] = JSON.parse(saved)
+      const index = games.findIndex(g => g.id === props.gameId)
+      if (index > -1) {
+        games[index] = game.value
+        localStorage.setItem('customGames', JSON.stringify(games))
+      }
+    }
+    
+    alert('已解除绑定')
+  } catch (error) {
+    console.error('解除绑定失败:', error)
+    alert('操作失败: ' + error)
+  }
+}
 </script>
 
 <template>
@@ -801,6 +927,111 @@ function getImageUrl(url: string): string {
               </div>
             </div>
             
+            <!-- MikuGame 绑定信息 -->
+            <div class="info-row">
+              <label>MikuGame 绑定:</label>
+              <div v-if="!isEditingBinding" class="binding-display">
+                <div v-if="game.mikuGameId" class="binding-info">
+                  <span class="binding-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    已绑定
+                  </span>
+                  <span class="binding-type">{{ game.mikuGameType }}</span>
+                </div>
+                <span v-else class="binding-empty">(未绑定)</span>
+                <div class="binding-actions">
+                  <button class="btn btn-secondary btn-sm" @click="startEditBinding">
+                    {{ game.mikuGameId ? '修改绑定' : '绑定游戏' }}
+                  </button>
+                  <button v-if="game.mikuGameId" class="btn btn-error btn-sm" @click="unbindMikuGame">
+                    解除绑定
+                  </button>
+                </div>
+              </div>
+              <div v-else class="binding-edit">
+                <!-- 已选择的游戏显示 -->
+                <div v-if="selectedMikuGame" class="selected-miku-game">
+                  <div class="miku-game-info">
+                    <img v-if="selectedMikuGame.cover_image_url" :src="selectedMikuGame.cover_image_url" alt="封面" class="miku-game-cover">
+                    <div class="miku-game-details">
+                      <strong>{{ selectedMikuGame.title }}</strong>
+                      <small>{{ selectedMikuGame.version || '未知版本' }}</small>
+                      <small class="game-type-badge">{{ selectedMikuGame.game_type }}</small>
+                    </div>
+                  </div>
+                  <button @click.stop="clearMikuGameSelection" class="btn btn-error btn-sm" style="cursor: pointer;">
+                    取消选择
+                  </button>
+                </div>
+
+                <!-- 搜索按钮 -->
+                <button 
+                  v-if="!selectedMikuGame" 
+                  @click.stop="showMikuGameSearch = !showMikuGameSearch" 
+                  class="btn btn-secondary"
+                  style="cursor: pointer; width: 100%;"
+                >
+                  {{ showMikuGameSearch ? '隐藏搜索' : '搜索MikuGame游戏' }}
+                </button>
+
+                <!-- 搜索界面 -->
+                <div v-if="showMikuGameSearch && !selectedMikuGame" class="miku-game-search">
+                  <div class="search-input-group">
+                    <input 
+                      v-model="mikuGameSearchKeyword" 
+                      type="text" 
+                      placeholder="输入游戏名称搜索..."
+                      class="form-input"
+                      @keyup.enter="searchMikuGames"
+                    >
+                    <button 
+                      @click.stop="searchMikuGames" 
+                      :disabled="isSearchingMikuGame || !mikuGameSearchKeyword.trim()"
+                      class="btn btn-primary"
+                      style="cursor: pointer;"
+                    >
+                      {{ isSearchingMikuGame ? '搜索中...' : '搜索' }}
+                    </button>
+                  </div>
+
+                  <!-- 搜索结果 -->
+                  <div v-if="mikuGameSearchResults.length > 0" class="search-results">
+                    <div 
+                      v-for="result in mikuGameSearchResults" 
+                      :key="result.id"
+                      class="search-result-item"
+                      @click="selectMikuGame(result)"
+                      style="cursor: pointer;"
+                    >
+                      <img v-if="result.cover_image_url" :src="result.cover_image_url" alt="封面" class="result-cover">
+                      <div class="result-info">
+                        <strong>{{ result.title }}</strong>
+                        <small>{{ result.version || '未知版本' }}</small>
+                        <div class="result-tags">
+                          <span v-for="tag in result.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else-if="mikuGameSearchKeyword && !isSearchingMikuGame" class="no-results">
+                    未找到相关游戏
+                  </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="edit-actions" style="margin-top: var(--space-3);">
+                  <button @click="saveBinding" class="btn btn-success" :disabled="!selectedMikuGame">
+                    保存绑定
+                  </button>
+                  <button @click="cancelEditBinding" class="btn btn-error">
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- 启动选项设置 (对所有游戏显示) -->
             <div class="info-row">
               <label>启动选项:</label>
@@ -1197,6 +1428,216 @@ function getImageUrl(url: string): string {
   font-size: var(--font-xs);
 }
 
+/* MikuGame 绑定相关样式 */
+.binding-display {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.binding-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.binding-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: rgba(52, 152, 219, 0.1);
+  color: var(--primary-color);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.binding-badge svg {
+  flex-shrink: 0;
+}
+
+.binding-type {
+  padding: var(--space-1) var(--space-2);
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  border-radius: var(--radius-base);
+  font-size: var(--font-xs);
+  font-family: var(--font-family-mono);
+}
+
+.binding-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.binding-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.binding-edit {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.selected-miku-game {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--gray-50);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+}
+
+.miku-game-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.miku-game-cover {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--radius-base);
+  flex-shrink: 0;
+}
+
+.miku-game-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.miku-game-details strong {
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miku-game-details small {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.game-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 10px !important;
+  width: fit-content;
+}
+
+.miku-game-search {
+  padding: var(--space-3);
+  background: var(--gray-50);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+}
+
+.search-input-group {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.search-input-group .form-input {
+  flex: 1;
+}
+
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: white;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-base);
+}
+
+.search-result-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.result-cover {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.result-info strong {
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-info small {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.result-tags {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+
+.result-tags .tag {
+  padding: 2px 6px;
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+}
+
+.no-results {
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+}
+
 /* 图片展示相关样式 */
 .images-gallery {
   display: grid;
@@ -1228,9 +1669,9 @@ function getImageUrl(url: string): string {
 .gallery-item img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition: opacity 0.3s ease;
-  background: var(--gray-100);
+  background: var(--gray-50);
 }
 
 .gallery-item img[src=""] {

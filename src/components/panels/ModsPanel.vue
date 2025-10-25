@@ -305,6 +305,11 @@ function formatPlayTime(minutes: number): string {
   return remainingHours > 0 ? `${days}天${remainingHours}小时` : `${days}天`
 }
 
+function handleImageError(event: Event) {
+  const img = event.target as HTMLImageElement
+  img.src = '/Miku.png'
+}
+
 // 组件挂载时加载游戏
 onMounted(async () => {
   loadGames()
@@ -492,44 +497,74 @@ onMounted(async () => {
         </div>
 
         <!-- Games List -->
-        <div class="games-list">
+        <div class="games-grid">
           <div v-if="games.length === 0" class="empty-state">
             <h3>暂无自定义游戏</h3>
             <p>点击上方按钮添加您的第一个游戏</p>
           </div>
           
-          <div v-for="game in games" :key="game.id" class="card game-item">
-            <div class="card-body">
-              <div class="game-content" @click="navigateToGame(game.id)" style="cursor: pointer;">
-                <div class="game-icon">
-                  <span v-if="!game.icon">G</span>
-                  <img v-else :src="game.icon" :alt="game.name">
+          <div v-for="game in games" :key="game.id" class="game-card">
+            <div class="game-card-inner" @click="navigateToGame(game.id)">
+              <!-- 游戏封面 -->
+              <div class="game-cover">
+                <img 
+                  v-if="game.coverImage || (game.images && game.images.length > 0)" 
+                  :src="game.coverImage || (game.images && game.images[0]) || ''" 
+                  :alt="game.name"
+                  loading="lazy"
+                  @error="handleImageError"
+                >
+                <div v-else class="game-cover-placeholder">
+                  <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 </div>
                 
-                <div class="game-info">
-                  <h4>{{ game.name }}</h4>
-                  <p class="game-directory">{{ game.directory }}</p>
-                  <div class="game-meta">
-                    <span v-if="game.lastPlayed" class="last-played">
-                      上次游玩: {{ formatDate(game.lastPlayed) }}
-                    </span>
-                    <span v-if="game.playTime" class="play-time">
-                      游玩时间: {{ formatPlayTime(game.playTime) }}
-                    </span>
-                  </div>
+                <!-- MikuGame绑定标签 -->
+                <div v-if="game.mikuGameId" class="mikugame-badge">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  已绑定
                 </div>
               </div>
               
-              <div class="game-actions">
-                <button 
-                  class="btn btn-error" 
-                  @click.stop="removeGame(game.id)"
-                  title="删除游戏"
-                >
-                  删除
-                </button>
+              <!-- 游戏信息 -->
+              <div class="game-info">
+                <h4 class="game-name" :title="game.name">{{ game.name }}</h4>
+                <p class="game-directory" :title="game.directory">{{ game.directory }}</p>
+                
+                <div class="game-stats">
+                  <div v-if="game.lastPlayed" class="stat-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>{{ formatDate(game.lastPlayed) }}</span>
+                  </div>
+                  <div v-if="game.playTime" class="stat-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>{{ formatPlayTime(game.playTime) }}</span>
+                  </div>
+                </div>
               </div>
             </div>
+            
+            <!-- 删除按钮 -->
+            <button 
+              class="game-delete-btn" 
+              @click.stop="removeGame(game.id)"
+              title="删除游戏"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -547,12 +582,19 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-6);
   border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(to right, var(--bg-card), var(--bg-primary));
 }
 
 .panel-header h2 {
   margin: 0;
+  font-size: var(--font-2xl);
+  font-weight: var(--font-bold);
+  background: linear-gradient(135deg, var(--primary-color), #2980b9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-actions {
@@ -562,8 +604,20 @@ onMounted(async () => {
 }
 
 .stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-card);
+  border-radius: var(--radius-full);
   font-size: var(--font-sm);
-  color: var(--text-muted);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.stat-item {
+  white-space: nowrap;
 }
 
 .panel-body {
@@ -672,88 +726,209 @@ onMounted(async () => {
 }
 
 .empty-state {
+  grid-column: 1 / -1;
   text-align: center;
-  padding: var(--space-10);
+  padding: var(--space-12) var(--space-6);
   color: var(--text-muted);
-  background-color: var(--gray-50);
-  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--gray-50) 0%, var(--bg-primary) 100%);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--border-color);
 }
 
-.games-list {
+.empty-state h3 {
+  font-size: var(--font-2xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  font-size: var(--font-base);
+  line-height: 1.6;
+}
+
+.games-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-5);
+  padding: var(--space-2);
 }
 
-.game-item .card-body {
+.game-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.game-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-color);
+}
+
+.game-card-inner {
+  cursor: pointer;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-4);
+  flex-direction: column;
+  height: 100%;
 }
 
-.game-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-width: 0;
+.game-cover {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
+  overflow: hidden;
 }
 
-.game-icon {
-  width: 48px;
-  height: 48px;
-  background: var(--primary-color);
-  border-radius: var(--radius-lg);
+.game-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  background: var(--gray-50);
+}
+
+.game-card:hover .game-cover img {
+  transform: scale(1.02);
+}
+
+.game-cover-placeholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: var(--font-bold);
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+
+.mikugame-badge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  background: rgba(52, 152, 219, 0.95);
   color: white;
-  font-size: var(--font-xl);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: var(--font-semibold);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.mikugame-badge svg {
   flex-shrink: 0;
 }
 
-.game-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: var(--radius-lg);
-}
-
 .game-info {
+  padding: var(--space-4);
   flex: 1;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.game-info h4 {
-  margin: 0 0 var(--space-1) 0;
+.game-name {
+  margin: 0;
   font-size: var(--font-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .game-directory {
+  margin: 0;
   font-size: var(--font-xs);
   color: var(--text-muted);
   font-family: var(--font-family-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.4;
 }
 
-.game-meta {
+.game-stats {
   display: flex;
-  gap: var(--space-4);
+  flex-direction: column;
+  gap: var(--space-2);
   margin-top: var(--space-2);
-  font-size: var(--font-xs);
-  color: var(--text-light);
 }
 
-.game-actions {
+.stat-item {
   display: flex;
-  gap: var(--space-3);
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+}
+
+.stat-item svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.game-delete-btn {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  background: rgba(231, 76, 60, 0.95);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0.8);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+.game-card:hover .game-delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.game-delete-btn:hover {
+  background: rgba(192, 57, 43, 0.95);
+  transform: scale(1.1);
+}
+
+.game-delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-4);
+  }
+  
+  .game-cover {
+    height: 160px;
+  }
 }
 
 .error-message {

@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
-const websiteUrl = 'https://mikugame.icu'
+const websiteUrl = 'https://www.mikugame.icu'
 const isOpening = ref(false)
 
 async function openInBrowser() {
@@ -37,8 +37,8 @@ async function openInBrowser() {
           </div>
           
           <div class="browser-text">
-            <h3>点击下方按钮前往MikuGame获取您需要的游戏</h3>
-            <p>MikuGame将在您的默认浏览器中打开，提供各类游戏下载和模组资源</p>
+            <h3>MikuGame初音游戏库持续更新中，遇到问题可以直接进群反馈</h3>
+            <p>将在您的默认浏览器中打开，提供各类Steam游戏，Galgame下载</p>
             <p class="website-url">{{ websiteUrl }}</p>
           </div>
           
