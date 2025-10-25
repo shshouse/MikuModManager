@@ -5,7 +5,6 @@ import { invoke } from '@tauri-apps/api/core'
 
 const emit = defineEmits<{
   'open-game': [gameId: string]
-  'open-mod-manager': []
 }>()
 
 function navigateToGame(gameId: string) {
@@ -34,7 +33,6 @@ const errors = ref({
 })
 const isLoading = ref(false)
 
-
 const isFormValid = computed(() => {
   return newGame.value.name.trim() && 
          newGame.value.directory.trim() && 
@@ -52,8 +50,6 @@ function validateName() {
   const name = newGame.value.name.trim()
   if (!name) {
     errors.value.name = '游戏名称不能为空'
-  } else if (name.length < 1) {
-    errors.value.name = '游戏名称至少需要1个字符'
   } else if (games.value.some((g: any) => g.name.toLowerCase() === name.toLowerCase())) {
     errors.value.name = '游戏名称已存在'
   } else {
@@ -235,7 +231,6 @@ function formatPlayTime(minutes: number): string {
   
   return remainingHours > 0 ? `${days}天${remainingHours}小时` : `${days}天`
 }
-
 
 // 组件挂载时加载游戏
 onMounted(async () => {

@@ -15,10 +15,6 @@ const props = withDefaults(defineProps<Props>(), {
   activeTab: 'mods'
 })
 
-// const emit = defineEmits<{
-//   tabChange: [tab: string]
-// }>()
-
 const currentPanel = ref(props.activeTab)
 const currentGameId = ref('')
 
@@ -40,13 +36,6 @@ function backToMods() {
   currentPanel.value = 'mods'
   currentGameId.value = ''
 }
-
-// 处理侧边栏标签切换
-// function handleTabChange(tab: string) {
-//   currentPanel.value = tab
-//   currentGameId.value = ''
-//   emit('tabChange', tab)
-// }
 </script>
 
 <template>
@@ -86,8 +75,6 @@ function backToMods() {
   background-color: var(--bg-primary);
   height: 100vh;
 }
-
-
 
 .content-body {
   flex: 1;
