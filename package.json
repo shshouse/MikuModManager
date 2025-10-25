@@ -12,6 +12,7 @@
     "bump-version": "node -e \"const fs=require('fs'),path=require('path');const v=JSON.parse(fs.readFileSync(path.join(__dirname,'version.json'),'utf8'));const p=v.version.split('.');p[2]=(parseInt(p[2])+1).toString();v.version=p.join('.');fs.writeFileSync(path.join(__dirname,'version.json'),JSON.stringify(v,null,2));console.log('版本已更新为:',v.version);\" && node scripts/sync-version.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.76.1",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.3.2",
     "@tauri-apps/plugin-opener": "^2",

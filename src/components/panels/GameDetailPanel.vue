@@ -11,6 +11,10 @@ interface CustomGame {
   lastPlayed?: Date
   playTime?: number
   launchOptions?: string
+  mikuGameId?: string
+  mikuGameType?: 'games' | 'h_games' | 'galgames'
+  images?: string[]
+  coverImage?: string
 }
 
 interface Patch {
@@ -59,6 +63,8 @@ const newGameDirectory = ref('')
 const isEditingDirectory = ref(false)
 const launchOptions = ref('')
 const isEditingLaunchOptions = ref(false)
+const currentImageIndex = ref(0)
+const showImageViewer = ref(false)
 
 // Removed unused computed property
 
@@ -684,6 +690,34 @@ async function openBackupDirectory() {
 function goBack() {
   emit('back')
 }
+
+// 图片查看相关函数
+function viewImage(index: number) {
+  currentImageIndex.value = index
+  showImageViewer.value = true
+}
+
+function closeImageViewer() {
+  showImageViewer.value = false
+}
+
+function nextImage() {
+  if (game.value && game.value.images) {
+    currentImageIndex.value = (currentImageIndex.value + 1) % game.value.images.length
+  }
+}
+
+function prevImage() {
+  if (game.value && game.value.images) {
+    currentImageIndex.value = (currentImageIndex.value - 1 + game.value.images.length) % game.value.images.length
+  }
+}
+
+// 将图片路径转换为可用的URL
+function getImageUrl(path: string): string {
+  // Tauri的convertFileSrc会将本地文件路径转换为可以在浏览器中使用的URL
+  return `file://${path}`
+}
 </script>
 
 <template>
@@ -701,6 +735,27 @@ function goBack() {
       </div>
 
       <div v-else class="content">
+        <!-- 游戏图片展示模块 -->
+        <div v-if="game.images && game.images.length > 0" class="card">
+          <div class="card-header">
+            <h3>游戏图片</h3>
+          </div>
+          <div class="card-body">
+            <div class="images-gallery">
+              <div 
+                v-for="(image, index) in game.images" 
+                :key="index"
+                class="gallery-item"
+                @click="viewImage(index)"
+                :class="{ 'is-cover': index === 0 }"
+              >
+                <img :src="getImageUrl(image)" :alt="`游戏图片 ${index + 1}`">
+                <div v-if="index === 0" class="cover-badge">封面</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 游戏详情模块 -->
         <div class="card">
           <div class="card-header">
@@ -907,6 +962,20 @@ function goBack() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片查看器模态框 -->
+    <div v-if="showImageViewer && game && game.images" class="image-viewer-overlay" @click="closeImageViewer">
+      <div class="image-viewer-content" @click.stop>
+        <button class="viewer-close" @click="closeImageViewer">×</button>
+        <button class="viewer-prev" @click="prevImage">‹</button>
+        <button class="viewer-next" @click="nextImage">›</button>
+        <img :src="getImageUrl(game.images[currentImageIndex])" alt="游戏图片">
+        <div class="viewer-info">
+          {{ currentImageIndex + 1 }} / {{ game.images.length }}
+          <span v-if="currentImageIndex === 0" class="cover-label">（封面）</span>
         </div>
       </div>
     </div>
@@ -1118,5 +1187,155 @@ function goBack() {
 .btn-sm {
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-xs);
+}
+
+/* 图片展示相关样式 */
+.images-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.gallery-item {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  border: 2px solid var(--border-color);
+  transition: all var(--transition-base);
+}
+
+.gallery-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.gallery-item.is-cover {
+  border-color: var(--primary-color);
+  border-width: 3px;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-badge {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: var(--primary-color);
+  color: white;
+  border-radius: var(--radius-base);
+  font-size: var(--font-xs);
+  font-weight: var(--font-semibold);
+}
+
+/* 图片查看器样式 */
+.image-viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.image-viewer-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-viewer-content img {
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+}
+
+.viewer-close {
+  position: absolute;
+  top: -50px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 2.5em;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.viewer-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.viewer-prev,
+.viewer-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 3em;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.viewer-prev {
+  left: -80px;
+}
+
+.viewer-next {
+  right: -80px;
+}
+
+.viewer-prev:hover,
+.viewer-next:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.viewer-info {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: var(--font-sm);
+  background: rgba(0, 0, 0, 0.5);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+}
+
+.cover-label {
+  color: var(--primary-color);
+  font-weight: var(--font-semibold);
 }
 </style>

@@ -24,3 +24,5 @@ document
 *.njsproj
 *.sln
 *.sw?
+.env
+mybt
