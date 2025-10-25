@@ -168,29 +168,20 @@ async function addGame() {
       mikuGameType: newGame.value.mikuGameType || undefined
     }
     
-    // 如果绑定了MikuGame，下载图片
+    // 如果绑定了MikuGame，保存图片URL
     if (game.mikuGameId && game.mikuGameType) {
       try {
         const mikuGameData = await fetchGameById(game.mikuGameId, game.mikuGameType)
         if (mikuGameData && mikuGameData.image_urls && mikuGameData.image_urls.length > 0) {
-          // 获取app目录
-          const appDirectory = await invoke('get_app_dir') as string
-          const pictureDir = `${appDirectory}/game/${game.name}/picture`
+          // 直接保存图片URL，由浏览器处理缓存
+          game.images = mikuGameData.image_urls
+          game.coverImage = mikuGameData.image_urls[0] // 第一张作为封面
           
-          // 下载图片
-          const downloadedPaths = await invoke('download_images', {
-            urls: mikuGameData.image_urls,
-            saveDir: pictureDir
-          }) as string[]
-          
-          game.images = downloadedPaths
-          game.coverImage = downloadedPaths[0] // 第一张作为封面
-          
-          console.log('已下载游戏图片:', downloadedPaths)
+          console.log('已保存游戏图片URL:', mikuGameData.image_urls)
         }
       } catch (error) {
-        console.error('下载MikuGame图片失败:', error)
-        // 继续添加游戏，即使图片下载失败
+        console.error('获取MikuGame图片URL失败:', error)
+        // 继续添加游戏，即使获取图片URL失败
       }
     }
     

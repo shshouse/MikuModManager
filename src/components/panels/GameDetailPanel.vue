@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
-import { convertFileSrc } from '@tauri-apps/api/tauri'
 
 interface CustomGame {
   id: string
@@ -714,28 +713,9 @@ function prevImage() {
   }
 }
 
-// 将图片路径转换为可用的URL
-function getImageUrl(path: string): string {
-  // Tauri的convertFileSrc会将本地文件路径转换为可以在浏览器中使用的URL
-  try {
-    if (!path) {
-      console.warn('Empty image path')
-      return ''
-    }
-    
-    // 移除可能的Windows UNC路径前缀 \\?\
-    let normalizedPath = path.replace(/^\\\\\?\\/, '')
-    
-    console.log('Original image path:', path)
-    console.log('Normalized image path:', normalizedPath)
-    
-    const url = convertFileSrc(normalizedPath)
-    console.log('Converted to URL:', url)
-    return url
-  } catch (error) {
-    console.error('Failed to convert file path:', path, error)
-    return ''
-  }
+// 直接返回图片URL，浏览器会自动处理缓存
+function getImageUrl(url: string): string {
+  return url || ''
 }
 </script>
 
@@ -768,7 +748,12 @@ function getImageUrl(path: string): string {
                 @click="viewImage(index)"
                 :class="{ 'is-cover': index === 0 }"
               >
-                <img :src="getImageUrl(image)" :alt="`游戏图片 ${index + 1}`">
+                <img 
+                  :src="getImageUrl(image)" 
+                  :alt="`游戏图片 ${index + 1}`"
+                  loading="lazy"
+                  @error="(e) => (e.target as HTMLImageElement).src = '/Miku.png'"
+                >
                 <div v-if="index === 0" class="cover-badge">封面</div>
               </div>
             </div>
@@ -991,7 +976,11 @@ function getImageUrl(path: string): string {
         <button class="viewer-close" @click="closeImageViewer">×</button>
         <button class="viewer-prev" @click="prevImage">‹</button>
         <button class="viewer-next" @click="nextImage">›</button>
-        <img :src="getImageUrl(game.images[currentImageIndex])" alt="游戏图片">
+        <img 
+          :src="getImageUrl(game.images[currentImageIndex])" 
+          alt="游戏图片"
+          @error="(e) => (e.target as HTMLImageElement).src = '/Miku.png'"
+        >
         <div class="viewer-info">
           {{ currentImageIndex + 1 }} / {{ game.images.length }}
           <span v-if="currentImageIndex === 0" class="cover-label">（封面）</span>
@@ -1240,6 +1229,16 @@ function getImageUrl(path: string): string {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: opacity 0.3s ease;
+  background: var(--gray-100);
+}
+
+.gallery-item img[src=""] {
+  opacity: 0;
+}
+
+.gallery-item img:not([src=""]) {
+  opacity: 1;
 }
 
 .cover-badge {
