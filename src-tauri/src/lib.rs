@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::io::Read;
 use serde::{Deserialize, Serialize};
+use zip::ZipArchive;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -147,12 +148,33 @@ fn write_file(path: String, content: String) -> Result<(), String> {
 
 #[tauri::command]
 fn open_directory(path: String) -> Result<(), String> {
+    let dir_path = Path::new(&path);
+    
+    // 验证路径存在
+    if !dir_path.exists() {
+        return Err(format!("目录不存在: {}", path));
+    }
+    
+    // 验证是一个目录
+    if !dir_path.is_dir() {
+        return Err(format!("路径不是一个目录: {}", path));
+    }
+    
+    // 获取绝对路径
+    let absolute_path = match dir_path.canonicalize() {
+        Ok(p) => p,
+        Err(e) => return Err(format!("无法获取绝对路径: {}", e))
+    };
+    
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
         
+        // 在Windows上，使用绝对路径并确保路径格式正确
+        let path_str = absolute_path.to_string_lossy().to_string();
+        
         match Command::new("explorer")
-            .arg(&path)
+            .arg(&path_str)
             .spawn() {
                 Ok(_) => Ok(()),
                 Err(e) => Err(format!("Failed to open directory: {}", e))
@@ -164,7 +186,7 @@ fn open_directory(path: String) -> Result<(), String> {
         use std::process::Command;
         
         match Command::new("open")
-            .arg(&path)
+            .arg(absolute_path.to_str().unwrap_or(&path))
             .spawn() {
                 Ok(_) => Ok(()),
                 Err(e) => Err(format!("Failed to open directory: {}", e))
@@ -176,7 +198,7 @@ fn open_directory(path: String) -> Result<(), String> {
         use std::process::Command;
         
         match Command::new("xdg-open")
-            .arg(&path)
+            .arg(absolute_path.to_str().unwrap_or(&path))
             .spawn() {
                 Ok(_) => Ok(()),
                 Err(e) => Err(format!("Failed to open directory: {}", e))
@@ -435,6 +457,79 @@ fn open_url_in_browser(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 解压模组压缩包到指定目录
+#[tauri::command]
+fn extract_mod_archive(archive_path: String, target_dir: String) -> Result<String, String> {
+    let archive_path = Path::new(&archive_path);
+    let target_dir = Path::new(&target_dir);
+    
+    // 检查文件是否存在
+    if !archive_path.exists() {
+        return Err("压缩包文件不存在".to_string());
+    }
+    
+    // 获取压缩包文件名（不含扩展名）作为文件夹名
+    let folder_name = archive_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .ok_or("无法获取文件名")?;
+    
+    // 创建目标目录
+    fs::create_dir_all(target_dir)
+        .map_err(|e| format!("创建目标目录失败: {}", e))?;
+    
+    // 最终解压目录
+    let extract_dir = target_dir.join(folder_name);
+    
+    // 检查目标文件夹是否已存在
+    if extract_dir.exists() {
+        return Err(format!("模组文件夹 '{}' 已存在，请先删除或重命名", folder_name));
+    }
+    
+    // 创建解压目录
+    fs::create_dir_all(&extract_dir)
+        .map_err(|e| format!("创建解压目录失败: {}", e))?;
+    
+    // 打开zip文件
+    let file = fs::File::open(archive_path)
+        .map_err(|e| format!("无法打开压缩包: {}", e))?;
+    
+    let mut archive = ZipArchive::new(file)
+        .map_err(|e| format!("无法读取压缩包: {}", e))?;
+    
+    // 解压所有文件
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)
+            .map_err(|e| format!("读取压缩包条目失败: {}", e))?;
+        
+        let outpath = match file.enclosed_name() {
+            Some(path) => extract_dir.join(path),
+            None => continue,
+        };
+        
+        if file.name().ends_with('/') {
+            // 这是一个目录
+            fs::create_dir_all(&outpath)
+                .map_err(|e| format!("创建目录失败: {}", e))?;
+        } else {
+            // 这是一个文件
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(p)
+                        .map_err(|e| format!("创建父目录失败: {}", e))?;
+                }
+            }
+            
+            let mut outfile = fs::File::create(&outpath)
+                .map_err(|e| format!("创建文件失败: {}", e))?;
+            
+            std::io::copy(&mut file, &mut outfile)
+                .map_err(|e| format!("写入文件失败: {}", e))?;
+        }
+    }
+    
+    Ok(extract_dir.to_string_lossy().to_string())
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -461,7 +556,8 @@ pub fn run() {
             create_game_status,
             read_game_status,
             update_game_status,
-            scan_games_for_status
+            scan_games_for_status,
+            extract_mod_archive
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
