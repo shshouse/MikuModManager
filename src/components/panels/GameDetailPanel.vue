@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 import { searchGames, fetchGameById } from '../../utils/supabase'
@@ -77,12 +77,38 @@ const isSearchingMikuGame = ref(false)
 const isEditingBinding = ref(false)
 
 const appDirectory = ref('')
+const backgroundImage = ref('')
+
+// 获取背景图片（从游戏图片或默认图片中随机选择）
+const heroBackground = computed(() => {
+  if (backgroundImage.value) {
+    return backgroundImage.value
+  }
+  return '/1.png' // 默认背景
+})
+
+// 随机选择背景图片
+function selectRandomBackground() {
+  const defaultImages = ['/1.png', '/2.png']
+  
+  if (game.value?.images && game.value.images.length > 0) {
+    // 如果游戏有图片，从游戏图片中随机选择
+    const allImages = [...game.value.images, ...defaultImages]
+    const randomIndex = Math.floor(Math.random() * allImages.length)
+    backgroundImage.value = allImages[randomIndex]
+  } else {
+    // 否则从默认图片中随机选择
+    const randomIndex = Math.floor(Math.random() * defaultImages.length)
+    backgroundImage.value = defaultImages[randomIndex]
+  }
+}
 
 onMounted(async () => {
   await loadAppDirectory()
   await loadGame()
   await scanPatches()
   await scanBackups()
+  selectRandomBackground()
 })
 
 async function loadAppDirectory() {
@@ -671,13 +697,68 @@ async function rollbackToBackup() {
 async function openPatchDirectory() {
   if (!game.value) return
   
-  const patchDir = `${appDirectory.value}/game/${game.value.name}/patch`
-  
   try {
+    // 确保目录存在
+    const patchDir = `${appDirectory.value}/game/${game.value.name}/patch`
+    
+    // 先检查目录是否存在
+    const exists = await invoke('file_exists', { path: patchDir }) as boolean
+    
+    if (!exists) {
+      // 如果不存在，先创建目录
+      await invoke('create_directory', { path: patchDir })
+    }
+    
+    // 打开目录
     await invoke('open_directory', { path: patchDir })
   } catch (error) {
     console.error('Failed to open patch directory:', error)
     alert('打开补丁目录失败：' + error)
+  }
+}
+
+async function importMod() {
+  if (!game.value) return
+  
+  try {
+    // 选择压缩包文件
+    const selected = await open({
+      multiple: false,
+      directory: false,
+      title: '选择模组压缩包',
+      filters: [{
+        name: '压缩包',
+        extensions: ['zip', 'rar', '7z']
+      }]
+    })
+    
+    if (!selected) return
+    
+    isLoading.value = true
+    
+    try {
+      const patchDir = `${appDirectory.value}/game/${game.value.name}/patch`
+      
+      // 调用后端解压函数
+      const result = await invoke('extract_mod_archive', {
+        archivePath: selected as string,
+        targetDir: patchDir
+      }) as string
+      
+      alert(`模组导入成功！\n解压到: ${result}`)
+      
+      // 刷新补丁列表
+      await scanPatches()
+      
+    } catch (error) {
+      console.error('Failed to import mod:', error)
+      alert('导入模组失败: ' + error)
+    } finally {
+      isLoading.value = false
+    }
+  } catch (error) {
+    console.error('Failed to open file dialog:', error)
+    alert('打开文件选择器失败: ' + error)
   }
 }
 
@@ -808,6 +889,10 @@ async function saveBinding() {
     
     isEditingBinding.value = false
     clearMikuGameSelection()
+    
+    // 重新选择背景图（如果更新了游戏图片）
+    selectRandomBackground()
+    
     alert('绑定已更新')
   } catch (error) {
     console.error('保存绑定失败:', error)
@@ -852,6 +937,36 @@ async function unbindMikuGame() {
         ← 返回游戏列表
       </button>
       <h2 v-if="game">{{ game.name }}</h2>
+    </div>
+
+    <!-- Steam风格背景横幅 -->
+    <div class="hero-banner" :style="{ backgroundImage: `url(${heroBackground})` }">
+      <div class="hero-gradient"></div>
+      <div class="hero-content">
+        <div class="hero-game-info">
+          <h1 class="hero-title">{{ game?.name || '游戏详情' }}</h1>
+          <div v-if="game" class="hero-actions">
+            <button 
+              @click="launchGame" 
+              :disabled="isLoading"
+              class="btn-hero-launch"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+              </svg>
+              <span v-if="isLoading">启动中...</span>
+              <span v-else>开始游戏</span>
+            </button>
+            <button @click="selectRandomBackground" class="btn-hero-secondary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 16V8C21 6.89543 20.1046 6 19 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18H19C20.1046 18 21 17.1046 21 16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 12H9L11 9L13 15L15 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              换背景
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="panel-body">
@@ -1089,6 +1204,21 @@ async function unbindMikuGame() {
         <div class="card">
           <div class="card-header">
             <h3>补丁安装</h3>
+            <div class="header-actions">
+              <button 
+                @click="importMod"
+                :disabled="isLoading"
+                class="btn btn-primary btn-sm"
+              >
+                导入模组
+              </button>
+              <button 
+                @click="openPatchDirectory"
+                class="btn btn-secondary btn-sm"
+              >
+                打开补丁目录
+              </button>
+            </div>
           </div>
           <div class="card-body">
             <div v-if="patches.length === 0" class="empty-state">
@@ -1123,12 +1253,6 @@ async function unbindMikuGame() {
                 >
                   <span v-if="isLoading">安装中...</span>
                   <span v-else>安装选中补丁 ({{ selectedPatches.size }})</span>
-                </button>
-                <button 
-                  @click="openPatchDirectory"
-                  class="btn btn-secondary"
-                >
-                  📁 打开补丁目录
                 </button>
               </div>
             </div>
@@ -1192,7 +1316,7 @@ async function unbindMikuGame() {
                   @click="openBackupDirectory"
                   class="btn btn-secondary"
                 >
-                  📁 打开备份目录
+                  打开备份目录
                 </button>
               </div>
             </div>
@@ -1225,15 +1349,129 @@ async function unbindMikuGame() {
 .game-detail-panel {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel-header {
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 .panel-header h2 {
   margin-left: var(--space-4);
 }
 
+/* Steam风格背景横幅 */
+.hero-banner {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.hero-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(16, 24, 32, 0.95) 100%
+  );
+}
+
+.hero-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-8) var(--space-6);
+  z-index: 1;
+}
+
+.hero-game-info {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hero-title {
+  color: white;
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-6) 0;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.5px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.btn-hero-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background: linear-gradient(135deg, #5C7CFA 0%, #4C6EF5 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(76, 110, 245, 0.4);
+}
+
+.btn-hero-launch:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4C6EF5 0%, #3B5BDB 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 110, 245, 0.5);
+}
+
+.btn-hero-launch:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-base);
+  font-size: var(--font-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.btn-hero-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
 .panel-body {
+  flex: 1;
   overflow-y: auto;
   padding: var(--space-6);
+  background: linear-gradient(
+    to bottom,
+    rgba(16, 24, 32, 0.95) 0%,
+    var(--bg-primary) 50px
+  );
 }
 
 .loading {
@@ -1248,11 +1486,61 @@ async function unbindMikuGame() {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 卡片美化 */
+.card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-5) var(--space-6);
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 2px solid var(--primary-color);
 }
 
 .card-header h3 {
   margin: 0;
   font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-header h3::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, #5C7CFA 0%, #4C6EF5 100%);
+  border-radius: 2px;
+}
+
+.card-body {
+  padding: var(--space-6);
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--space-2);
 }
 
 .info-row {
@@ -1260,6 +1548,15 @@ async function unbindMikuGame() {
   align-items: flex-start;
   gap: var(--space-4);
   margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  background: #fafbfc;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--primary-color);
+  transition: all 0.2s ease;
+}
+
+.info-row:hover {
+  background: #f3f5f7;
 }
 
 .info-row:last-child {
@@ -1267,11 +1564,12 @@ async function unbindMikuGame() {
 }
 
 .info-row label {
-  font-weight: var(--font-semibold);
+  font-weight: 700;
   color: var(--text-secondary);
-  min-width: 100px;
+  min-width: 120px;
   padding-top: var(--space-2);
   font-size: var(--font-sm);
+  letter-spacing: 0.3px;
 }
 
 .directory-display, .launch-options-display {
@@ -1283,13 +1581,19 @@ async function unbindMikuGame() {
 
 .directory-path, .launch-options-text {
   font-family: var(--font-family-mono);
-  background: var(--gray-50);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-base);
-  border: 1px solid var(--border-color);
+  background: white;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 2px solid #e1e4e8;
   flex: 1;
   word-break: break-all;
   font-size: var(--font-sm);
+  transition: all 0.2s ease;
+}
+
+.directory-path:hover, .launch-options-text:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(76, 110, 245, 0.1);
 }
 
 .directory-edit, .launch-options-edit {
@@ -1344,17 +1648,21 @@ async function unbindMikuGame() {
   text-align: center;
   padding: var(--space-8);
   color: var(--text-muted);
-  background-color: var(--gray-50);
-  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--border-color);
 }
 
 .empty-state p {
   margin: 0 0 var(--space-2) 0;
-  font-size: var(--font-base);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .empty-state small {
   font-size: var(--font-sm);
+  color: var(--text-muted);
 }
 
 .patches-list, .backups-list {
@@ -1367,12 +1675,24 @@ async function unbindMikuGame() {
 .patch-item, .backup-item {
   gap: var(--space-4);
   cursor: pointer;
+  padding: var(--space-4);
+  background: #fafbfc;
+  border: 2px solid #e1e4e8;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.patch-item:hover, .backup-item:hover {
+  border-color: #a8b8d8;
+  background: #f3f5f7;
+  transform: translateX(4px);
 }
 
 .patch-item.selected, .backup-item.selected {
   border-color: var(--primary-color);
-  background-color: var(--gray-50);
-  box-shadow: var(--shadow-primary);
+  background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+  box-shadow: 0 2px 12px rgba(76, 110, 245, 0.2);
+  transform: translateX(4px);
 }
 
 .patch-info, .backup-info {
@@ -1397,11 +1717,12 @@ async function unbindMikuGame() {
 .backup-details {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
-  padding: var(--space-2);
-  background: var(--gray-50);
-  border-radius: var(--radius-sm);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid #e1e4e8;
   border-left: 3px solid var(--primary-color);
 }
 
@@ -1409,6 +1730,8 @@ async function unbindMikuGame() {
   display: block;
   font-size: var(--font-xs);
   color: var(--text-secondary);
+  line-height: 1.6;
+  padding: var(--space-1) 0;
 }
 
 .conflict-warning {
@@ -1421,11 +1744,32 @@ async function unbindMikuGame() {
   justify-content: center;
   gap: var(--space-3);
   flex-wrap: wrap;
+  padding-top: var(--space-3);
+}
+
+.install-actions .btn,
+.rollback-actions .btn {
+  font-weight: 600;
+  padding: var(--space-3) var(--space-6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.install-actions .btn:hover:not(:disabled),
+.rollback-actions .btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-sm {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-xs);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-sm:hover {
+  transform: translateY(-1px);
 }
 
 /* MikuGame 绑定相关样式 */
@@ -1641,7 +1985,7 @@ async function unbindMikuGame() {
 /* 图片展示相关样式 */
 .images-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: var(--space-4);
 }
 
@@ -1651,27 +1995,51 @@ async function unbindMikuGame() {
   overflow: hidden;
   border-radius: var(--radius-lg);
   cursor: pointer;
-  border: 2px solid var(--border-color);
-  transition: all var(--transition-base);
+  border: 3px solid #e1e4e8;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, #fafbfc 0%, #f6f8fa 100%);
+}
+
+.gallery-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(92, 124, 250, 0.1) 0%,
+    rgba(76, 110, 245, 0.1) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
 }
 
 .gallery-item:hover {
   border-color: var(--primary-color);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(76, 110, 245, 0.25);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.gallery-item:hover::before {
+  opacity: 1;
 }
 
 .gallery-item.is-cover {
   border-color: var(--primary-color);
   border-width: 3px;
+  box-shadow: 0 4px 16px rgba(76, 110, 245, 0.2);
 }
 
 .gallery-item img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  transition: opacity 0.3s ease;
-  background: var(--gray-50);
+  object-fit: cover;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.gallery-item:hover img {
+  transform: scale(1.05);
 }
 
 .gallery-item img[src=""] {
@@ -1686,12 +2054,15 @@ async function unbindMikuGame() {
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  background: var(--primary-color);
+  padding: var(--space-2) var(--space-3);
+  background: linear-gradient(135deg, #5C7CFA 0%, #4C6EF5 100%);
   color: white;
   border-radius: var(--radius-base);
   font-size: var(--font-xs);
-  font-weight: var(--font-semibold);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(76, 110, 245, 0.4);
+  z-index: 2;
+  letter-spacing: 0.5px;
 }
 
 /* 图片查看器样式 */
@@ -1701,12 +2072,22 @@ async function unbindMikuGame() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
+  background: rgba(0, 0, 0, 0.96);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .image-viewer-content {
@@ -1716,6 +2097,18 @@ async function unbindMikuGame() {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: zoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .image-viewer-content img {
@@ -1723,16 +2116,17 @@ async function unbindMikuGame() {
   max-height: 85vh;
   object-fit: contain;
   border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .viewer-close {
   position: absolute;
-  top: -50px;
+  top: -60px;
   right: 0;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(200, 35, 51, 0.8));
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: white;
-  font-size: 2.5em;
+  font-size: 2em;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -1740,12 +2134,14 @@ async function unbindMikuGame() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .viewer-close:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
+  background: linear-gradient(135deg, rgba(240, 73, 89, 0.9), rgba(220, 53, 69, 0.9));
+  transform: rotate(90deg) scale(1.1);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
 }
 
 .viewer-prev,
@@ -1753,10 +2149,10 @@ async function unbindMikuGame() {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  background: linear-gradient(135deg, rgba(92, 124, 250, 0.8), rgba(76, 110, 245, 0.8));
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: white;
-  font-size: 3em;
+  font-size: 2.5em;
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -1764,7 +2160,8 @@ async function unbindMikuGame() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .viewer-prev {
@@ -1777,24 +2174,30 @@ async function unbindMikuGame() {
 
 .viewer-prev:hover,
 .viewer-next:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-50%) scale(1.1);
+  background: linear-gradient(135deg, rgba(112, 144, 255, 0.9), rgba(92, 124, 250, 0.9));
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 6px 20px rgba(76, 110, 245, 0.4);
 }
 
 .viewer-info {
   position: absolute;
-  bottom: -40px;
+  bottom: -50px;
   left: 50%;
   transform: translateX(-50%);
   color: white;
-  font-size: var(--font-sm);
-  background: rgba(0, 0, 0, 0.5);
-  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-base);
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7));
+  padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-full);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
 }
 
 .cover-label {
-  color: var(--primary-color);
-  font-weight: var(--font-semibold);
+  color: #5C7CFA;
+  font-weight: 700;
+  margin-left: var(--space-2);
 }
 </style>

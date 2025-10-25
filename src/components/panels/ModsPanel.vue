@@ -361,14 +361,13 @@ onMounted(async () => {
     </div>
 
     <div class="panel-body">
-      <!-- 自定义游戏模块 -->
+      <!-- 游戏列表模块 -->
       <div class="module-section">
-        <h3>自定义游戏</h3>
         <!-- Add Game Dialog -->
         <div v-if="showAddDialog" class="dialog-overlay" @click.self="cancelAdd">
           <div class="dialog">
             <div class="dialog-header">
-              <h3>添加自定义游戏</h3>
+              <h3>添加游戏</h3>
               <button class="close-btn" @click="cancelAdd">×</button>
             </div>
             
@@ -499,7 +498,7 @@ onMounted(async () => {
         <!-- Games List -->
         <div class="games-grid">
           <div v-if="games.length === 0" class="empty-state">
-            <h3>暂无自定义游戏</h3>
+            <h3>暂无游戏</h3>
             <p>点击上方按钮添加您的第一个游戏</p>
           </div>
           
@@ -626,16 +625,7 @@ onMounted(async () => {
 }
 
 .module-section {
-  margin-bottom: var(--space-8);
-}
-
-.module-section h3 {
-  margin: 0 0 var(--space-5) 0;
-  color: var(--text-primary);
-  font-size: var(--font-xl);
-  font-weight: var(--font-semibold);
-  padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--primary-color);
+  margin-bottom: 0;
 }
 
 .dialog-overlay {
@@ -749,15 +739,15 @@ onMounted(async () => {
 
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
   padding: var(--space-2);
 }
 
 .game-card {
   position: relative;
   background: var(--bg-card);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--border-color);
@@ -780,7 +770,7 @@ onMounted(async () => {
 .game-cover {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 150px;
   background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
   overflow: hidden;
 }
@@ -829,16 +819,16 @@ onMounted(async () => {
 }
 
 .game-info {
-  padding: var(--space-4);
+  padding: var(--space-3);
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .game-name {
   margin: 0;
-  font-size: var(--font-lg);
+  font-size: var(--font-base);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   white-space: nowrap;
@@ -861,8 +851,8 @@ onMounted(async () => {
 .game-stats {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
+  gap: var(--space-1);
+  margin-top: var(--space-1);
 }
 
 .stat-item {
@@ -916,18 +906,22 @@ onMounted(async () => {
 /* 响应式调整 */
 @media (max-width: 1200px) {
   .games-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
   .games-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--space-3);
   }
   
   .game-cover {
-    height: 160px;
+    height: 120px;
+  }
+  
+  .game-info {
+    padding: var(--space-2);
   }
 }
 
