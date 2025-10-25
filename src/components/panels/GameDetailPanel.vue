@@ -1098,22 +1098,6 @@ async function unbindMikuGame() {
                 </div>
               </div>
             </div>
-            
-            <!-- 游戏启动按钮 (对所有游戏显示) -->
-            <div class="info-row">
-              <label></label>
-              <div class="launch-game-section">
-                <button 
-                  @click="launchGame" 
-                  :disabled="isLoading"
-                  class="btn btn-error btn-launch"
-                >
-                  <span v-if="isLoading">启动中...</span>
-                  <span v-else>启动 {{ game.name }}</span>
-                </button>
-                <small class="launch-help">使用上面设置的启动选项启动游戏</small>
-              </div>
-            </div>
           </div>
         </div>
 
