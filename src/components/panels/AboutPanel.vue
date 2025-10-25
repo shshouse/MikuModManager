@@ -36,10 +36,7 @@ function openLink(url: string) {
         <div class="card app-info-card">
           <div class="card-body">
             <div class="app-icon">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 16V8C21 4.13 17.87 1 14 1H10C6.13 1 3 4.13 3 8V16C3 19.87 6.13 23 10 23H14C17.87 23 21 19.87 21 16Z" fill="var(--primary-color)"/>
-                <path d="M10 11L14 15M14 11L10 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <img src="/Miku.png" alt="Miku Mod Manager" />
             </div>
             <div class="app-details">
               <h2>{{ appInfo.name }}</h2>
@@ -133,6 +130,15 @@ function openLink(url: string) {
 
 .app-icon {
   flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+}
+
+.app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
 }
 
 .app-details h2 {
