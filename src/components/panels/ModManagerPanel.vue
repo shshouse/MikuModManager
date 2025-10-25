@@ -597,7 +597,7 @@ async function showConflictResolutionDialog(
         background: white;
         border-radius: 8px;
         padding: 20px;
-        max-width: 500px;
+        max-width: 700px;
         max-height: 80vh;
         overflow-y: auto;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -801,7 +801,7 @@ async function showConflictResolutionDialog(
 .modal-content {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  width: 600px;
+  width: 700px;
   max-width: 90vw;
   max-height: 80vh;
   overflow: hidden;

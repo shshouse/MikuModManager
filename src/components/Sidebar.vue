@@ -29,7 +29,7 @@ function selectTab(tabId: string) {
 <template>
   <div class="sidebar">
     <div class="sidebar-header">
-      <h2>Miku Mod Manager</h2>
+      <img src="/MikuModManager.png" alt="Miku Mod Manager" class="logo-image" />
     </div>
     
     <nav class="sidebar-nav">
@@ -72,6 +72,13 @@ function selectTab(tabId: string) {
   font-weight: 600;
   color: white;
   margin: 0;
+}
+
+.logo-image {
+  max-width: 100%;
+  height: auto;
+  max-height: 60px;
+  object-fit: contain;
 }
 
 .sidebar-nav {
