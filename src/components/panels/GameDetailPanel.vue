@@ -22,7 +22,6 @@ interface CustomGame {
 interface Patch {
   name: string
   path: string
-  installed: boolean
 }
 
 interface BackupFile {
@@ -51,10 +50,6 @@ const props = defineProps<{
   gameId: string
 }>()
 
-const emit = defineEmits<{
-  back: []
-}>()
-
 const game = ref<CustomGame | null>(null)
 const patches = ref<Patch[]>([])
 const backups = ref<Backup[]>([])
@@ -65,8 +60,6 @@ const newGameDirectory = ref('')
 const isEditingDirectory = ref(false)
 const launchOptions = ref('')
 const isEditingLaunchOptions = ref(false)
-const currentImageIndex = ref(0)
-const showImageViewer = ref(false)
 
 // MikuGame 绑定相关
 const showMikuGameSearch = ref(false)
@@ -79,27 +72,23 @@ const isEditingBinding = ref(false)
 const appDirectory = ref('')
 const backgroundImage = ref('')
 
-// 获取背景图片（从游戏图片或默认图片中随机选择）
+// 获取背景图片（从游戏图片中随机选择，如果没有则显示默认图）
 const heroBackground = computed(() => {
   if (backgroundImage.value) {
     return backgroundImage.value
   }
-  return '/1.png' // 默认背景
+  return '/Miku.png' // 默认背景
 })
 
 // 随机选择背景图片
 function selectRandomBackground() {
-  const defaultImages = ['/1.png', '/2.png']
-  
   if (game.value?.images && game.value.images.length > 0) {
     // 如果游戏有图片，从游戏图片中随机选择
-    const allImages = [...game.value.images, ...defaultImages]
-    const randomIndex = Math.floor(Math.random() * allImages.length)
-    backgroundImage.value = allImages[randomIndex]
+    const randomIndex = Math.floor(Math.random() * game.value.images.length)
+    backgroundImage.value = game.value.images[randomIndex]
   } else {
-    // 否则从默认图片中随机选择
-    const randomIndex = Math.floor(Math.random() * defaultImages.length)
-    backgroundImage.value = defaultImages[randomIndex]
+    // 否则显示默认图片
+    backgroundImage.value = '/MikuModManager.png'
   }
 }
 
@@ -180,8 +169,7 @@ async function scanPatches() {
     
     patches.value = patchFolders.map((folder: string) => ({
       name: folder,
-      path: `${patchDir}/${folder}`,
-      installed: false
+      path: `${patchDir}/${folder}`
     }))
   } catch (error) {
     console.error('Failed to scan patches:', error)
@@ -776,37 +764,6 @@ async function openBackupDirectory() {
   }
 }
 
-function goBack() {
-  emit('back')
-}
-
-// 图片查看相关函数
-function viewImage(index: number) {
-  currentImageIndex.value = index
-  showImageViewer.value = true
-}
-
-function closeImageViewer() {
-  showImageViewer.value = false
-}
-
-function nextImage() {
-  if (game.value && game.value.images) {
-    currentImageIndex.value = (currentImageIndex.value + 1) % game.value.images.length
-  }
-}
-
-function prevImage() {
-  if (game.value && game.value.images) {
-    currentImageIndex.value = (currentImageIndex.value - 1 + game.value.images.length) % game.value.images.length
-  }
-}
-
-// 直接返回图片URL，浏览器会自动处理缓存
-function getImageUrl(url: string): string {
-  return url || ''
-}
-
 // MikuGame 绑定功能
 async function searchMikuGames() {
   if (!mikuGameSearchKeyword.value.trim()) {
@@ -932,70 +889,30 @@ async function unbindMikuGame() {
 
 <template>
   <div class="game-detail-panel panel">
-    <div class="panel-header">
-      <button class="btn btn-secondary" @click="goBack">
-        ← 返回游戏列表
-      </button>
-      <h2 v-if="game">{{ game.name }}</h2>
-    </div>
-
-    <!-- Steam风格背景横幅 -->
-    <div class="hero-banner" :style="{ backgroundImage: `url(${heroBackground})` }">
-      <div class="hero-gradient"></div>
-      <div class="hero-content">
-        <div class="hero-game-info">
-          <h1 class="hero-title">{{ game?.name || '游戏详情' }}</h1>
-          <div v-if="game" class="hero-actions">
-            <button 
-              @click="launchGame" 
-              :disabled="isLoading"
-              class="btn-hero-launch"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
-              </svg>
-              <span v-if="isLoading">启动中...</span>
-              <span v-else>开始游戏</span>
-            </button>
-            <button @click="selectRandomBackground" class="btn-hero-secondary">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 16V8C21 6.89543 20.1046 6 19 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18H19C20.1046 18 21 17.1046 21 16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M3 12H9L11 9L13 15L15 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              换背景
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="panel-body">
       <div v-if="!game" class="loading">
         <p>加载中...</p>
       </div>
 
       <div v-else class="content">
-        <!-- 游戏图片展示模块 -->
-        <div v-if="game.images && game.images.length > 0" class="card">
-          <div class="card-header">
-            <h3>游戏图片</h3>
-          </div>
-          <div class="card-body">
-            <div class="images-gallery">
-              <div 
-                v-for="(image, index) in game.images" 
-                :key="index"
-                class="gallery-item"
-                @click="viewImage(index)"
-                :class="{ 'is-cover': index === 0 }"
-              >
-                <img 
-                  :src="getImageUrl(image)" 
-                  :alt="`游戏图片 ${index + 1}`"
-                  loading="lazy"
-                  @error="(e) => (e.target as HTMLImageElement).src = '/Miku.png'"
+        <!-- Steam风格背景横幅 -->
+        <div class="hero-banner" :style="{ backgroundImage: `url(${heroBackground})` }">
+          <div class="hero-gradient"></div>
+          <div class="hero-content">
+            <div class="hero-game-info">
+              <h1 class="hero-title">{{ game?.name || '游戏详情' }}</h1>
+              <div v-if="game" class="hero-actions">
+                <button 
+                  @click="launchGame" 
+                  :disabled="isLoading"
+                  class="btn-hero-launch"
                 >
-                <div v-if="index === 0" class="cover-badge">封面</div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+                  </svg>
+                  <span v-if="isLoading">启动中...</span>
+                  <span v-else">开始游戏</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1230,7 +1147,7 @@ async function unbindMikuGame() {
                 <div 
                   v-for="patch in patches" 
                   :key="patch.name"
-                  class="list-item patch-item"
+                  class="patch-item"
                   :class="{ selected: selectedPatches.has(patch.name) }"
                   @click="togglePatch(patch.name)"
                 >
@@ -1274,7 +1191,7 @@ async function unbindMikuGame() {
                 <div 
                   v-for="backup in backups" 
                   :key="backup.name"
-                  class="list-item backup-item"
+                  class="backup-item"
                   :class="{ selected: selectedBackup === backup.name }"
                   @click="selectedBackup = backup.name"
                 >
@@ -1324,24 +1241,6 @@ async function unbindMikuGame() {
         </div>
       </div>
     </div>
-
-    <!-- 图片查看器模态框 -->
-    <div v-if="showImageViewer && game && game.images" class="image-viewer-overlay" @click="closeImageViewer">
-      <div class="image-viewer-content" @click.stop>
-        <button class="viewer-close" @click="closeImageViewer">×</button>
-        <button class="viewer-prev" @click="prevImage">‹</button>
-        <button class="viewer-next" @click="nextImage">›</button>
-        <img 
-          :src="getImageUrl(game.images[currentImageIndex])" 
-          alt="游戏图片"
-          @error="(e) => (e.target as HTMLImageElement).src = '/Miku.png'"
-        >
-        <div class="viewer-info">
-          {{ currentImageIndex + 1 }} / {{ game.images.length }}
-          <span v-if="currentImageIndex === 0" class="cover-label">（封面）</span>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -1353,25 +1252,16 @@ async function unbindMikuGame() {
   overflow: hidden;
 }
 
-.panel-header {
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.panel-header h2 {
-  margin-left: var(--space-4);
-}
-
 /* Steam风格背景横幅 */
 .hero-banner {
   position: relative;
   width: 100%;
-  height: 400px;
+  height: 450px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  flex-shrink: 0;
   overflow: hidden;
+  margin-bottom: var(--space-6);
 }
 
 .hero-gradient {
@@ -1441,37 +1331,11 @@ async function unbindMikuGame() {
   cursor: not-allowed;
 }
 
-.btn-hero-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-base);
-  font-size: var(--font-base);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
-}
-
-.btn-hero-secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-}
-
 .panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-6);
-  background: linear-gradient(
-    to bottom,
-    rgba(16, 24, 32, 0.95) 0%,
-    var(--bg-primary) 50px
-  );
+  padding: 0;
+  background: var(--bg-primary);
 }
 
 .loading {
@@ -1485,10 +1349,15 @@ async function unbindMikuGame() {
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 0;
   width: 100%;
+}
+
+/* 卡片容器 */
+.content > .card {
+  max-width: 1200px;
+  width: calc(100% - var(--space-12));
+  margin: 0 auto var(--space-6);
 }
 
 /* 卡片美化 */
@@ -1504,6 +1373,10 @@ async function unbindMikuGame() {
 .card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
+}
+
+.content > .card:last-child {
+  margin-bottom: var(--space-8);
 }
 
 .card-header {
@@ -1980,224 +1853,5 @@ async function unbindMikuGame() {
   padding: var(--space-5);
   color: var(--text-muted);
   font-size: var(--font-sm);
-}
-
-/* 图片展示相关样式 */
-.images-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-4);
-}
-
-.gallery-item {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  border: 3px solid #e1e4e8;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(135deg, #fafbfc 0%, #f6f8fa 100%);
-}
-
-.gallery-item::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(92, 124, 250, 0.1) 0%,
-    rgba(76, 110, 245, 0.1) 100%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-}
-
-.gallery-item:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 8px 24px rgba(76, 110, 245, 0.25);
-  transform: translateY(-4px) scale(1.02);
-}
-
-.gallery-item:hover::before {
-  opacity: 1;
-}
-
-.gallery-item.is-cover {
-  border-color: var(--primary-color);
-  border-width: 3px;
-  box-shadow: 0 4px 16px rgba(76, 110, 245, 0.2);
-}
-
-.gallery-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: all 0.3s ease;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-}
-
-.gallery-item:hover img {
-  transform: scale(1.05);
-}
-
-.gallery-item img[src=""] {
-  opacity: 0;
-}
-
-.gallery-item img:not([src=""]) {
-  opacity: 1;
-}
-
-.cover-badge {
-  position: absolute;
-  top: var(--space-2);
-  left: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: linear-gradient(135deg, #5C7CFA 0%, #4C6EF5 100%);
-  color: white;
-  border-radius: var(--radius-base);
-  font-size: var(--font-xs);
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(76, 110, 245, 0.4);
-  z-index: 2;
-  letter-spacing: 0.5px;
-}
-
-/* 图片查看器样式 */
-.image-viewer-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.96);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.image-viewer-content {
-  position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: zoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes zoomIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.image-viewer-content img {
-  max-width: 100%;
-  max-height: 85vh;
-  object-fit: contain;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.viewer-close {
-  position: absolute;
-  top: -60px;
-  right: 0;
-  background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(200, 35, 51, 0.8));
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  font-size: 2em;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.viewer-close:hover {
-  background: linear-gradient(135deg, rgba(240, 73, 89, 0.9), rgba(220, 53, 69, 0.9));
-  transform: rotate(90deg) scale(1.1);
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
-}
-
-.viewer-prev,
-.viewer-next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: linear-gradient(135deg, rgba(92, 124, 250, 0.8), rgba(76, 110, 245, 0.8));
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  font-size: 2.5em;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.viewer-prev {
-  left: -80px;
-}
-
-.viewer-next {
-  right: -80px;
-}
-
-.viewer-prev:hover,
-.viewer-next:hover {
-  background: linear-gradient(135deg, rgba(112, 144, 255, 0.9), rgba(92, 124, 250, 0.9));
-  transform: translateY(-50%) scale(1.15);
-  box-shadow: 0 6px 20px rgba(76, 110, 245, 0.4);
-}
-
-.viewer-info {
-  position: absolute;
-  bottom: -50px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  font-size: var(--font-base);
-  font-weight: 600;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7));
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-full);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
-}
-
-.cover-label {
-  color: #5C7CFA;
-  font-weight: 700;
-  margin-left: var(--space-2);
 }
 </style>
