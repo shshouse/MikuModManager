@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
+import { searchGames, fetchGameById } from '../../utils/supabase'
+import type { MikuGameListItem, GameType } from '../../types/mikugame'
 
 const emit = defineEmits<{
   'open-game': [gameId: string]
@@ -19,19 +21,30 @@ interface CustomGame {
   lastPlayed?: Date
   playTime?: number
   launchOptions?: string
+  mikuGameId?: string // MikuGame绑定的游戏ID
+  mikuGameType?: 'games' | 'h_games' | 'galgames' // MikuGame游戏类型
+  images?: string[] // 本地图片路径列表
+  coverImage?: string // 封面图片路径
 }
 
 const games = ref<CustomGame[]>([])
 const showAddDialog = ref(false)
 const newGame = ref({
   name: '',
-  directory: ''
+  directory: '',
+  mikuGameId: '',
+  mikuGameType: '' as GameType | ''
 })
 const errors = ref({
   name: '',
   directory: ''
 })
 const isLoading = ref(false)
+const showMikuGameSearch = ref(false)
+const mikuGameSearchKeyword = ref('')
+const mikuGameSearchResults = ref<MikuGameListItem[]>([])
+const selectedMikuGame = ref<MikuGameListItem | null>(null)
+const isSearchingMikuGame = ref(false)
 
 const isFormValid = computed(() => {
   return newGame.value.name.trim() && 
@@ -42,8 +55,49 @@ const isFormValid = computed(() => {
 
 function showAddGameDialog() {
   showAddDialog.value = true
-  newGame.value = { name: '', directory: '' }
+  newGame.value = { name: '', directory: '', mikuGameId: '', mikuGameType: '' as GameType | '' }
   errors.value = { name: '', directory: '' }
+  selectedMikuGame.value = null
+  mikuGameSearchKeyword.value = ''
+  mikuGameSearchResults.value = []
+  showMikuGameSearch.value = false
+}
+
+async function searchMikuGames() {
+  if (!mikuGameSearchKeyword.value.trim()) {
+    return
+  }
+  
+  isSearchingMikuGame.value = true
+  try {
+    const results = await searchGames(mikuGameSearchKeyword.value)
+    mikuGameSearchResults.value = results
+  } catch (error) {
+    console.error('搜索MikuGame失败:', error)
+    alert('搜索失败: ' + error)
+  } finally {
+    isSearchingMikuGame.value = false
+  }
+}
+
+function selectMikuGame(game: MikuGameListItem) {
+  selectedMikuGame.value = game
+  newGame.value.mikuGameId = game.id
+  newGame.value.mikuGameType = game.game_type
+  
+  // 自动填充游戏名称（如果为空）
+  if (!newGame.value.name.trim()) {
+    newGame.value.name = game.title
+    validateName()
+  }
+  
+  showMikuGameSearch.value = false
+}
+
+function clearMikuGameSelection() {
+  selectedMikuGame.value = null
+  newGame.value.mikuGameId = ''
+  newGame.value.mikuGameType = '' as GameType | ''
 }
 
 function validateName() {
@@ -109,7 +163,35 @@ async function addGame() {
       directory: newGame.value.directory.trim(),
       lastPlayed: undefined,
       playTime: 0,
-      launchOptions: '' // 初始化启动选项为空字符串
+      launchOptions: '', // 初始化启动选项为空字符串
+      mikuGameId: newGame.value.mikuGameId || undefined,
+      mikuGameType: newGame.value.mikuGameType || undefined
+    }
+    
+    // 如果绑定了MikuGame，下载图片
+    if (game.mikuGameId && game.mikuGameType) {
+      try {
+        const mikuGameData = await fetchGameById(game.mikuGameId, game.mikuGameType)
+        if (mikuGameData && mikuGameData.image_urls && mikuGameData.image_urls.length > 0) {
+          // 获取app目录
+          const appDirectory = await invoke('get_app_dir') as string
+          const pictureDir = `${appDirectory}/game/${game.name}/picture`
+          
+          // 下载图片
+          const downloadedPaths = await invoke('download_images', {
+            urls: mikuGameData.image_urls,
+            saveDir: pictureDir
+          }) as string[]
+          
+          game.images = downloadedPaths
+          game.coverImage = downloadedPaths[0] // 第一张作为封面
+          
+          console.log('已下载游戏图片:', downloadedPaths)
+        }
+      } catch (error) {
+        console.error('下载MikuGame图片失败:', error)
+        // 继续添加游戏，即使图片下载失败
+      }
     }
     
     games.value.push(game)
@@ -325,6 +407,80 @@ onMounted(async () => {
                   </button>
                 </div>
                 <div v-if="errors.directory" class="error-message">{{ errors.directory }}</div>
+              </div>
+
+              <!-- MikuGame绑定功能 -->
+              <div class="form-group">
+                <label>绑定MikuGame游戏 <span style="color: var(--text-muted); font-weight: normal;">(可选)</span></label>
+                
+                <!-- 已选择的游戏显示 -->
+                <div v-if="selectedMikuGame" class="selected-miku-game">
+                  <div class="miku-game-info">
+                    <img v-if="selectedMikuGame.cover_image_url" :src="selectedMikuGame.cover_image_url" alt="封面" class="miku-game-cover">
+                    <div class="miku-game-details">
+                      <strong>{{ selectedMikuGame.title }}</strong>
+                      <small>{{ selectedMikuGame.version || '未知版本' }}</small>
+                      <small class="game-type-badge">{{ selectedMikuGame.game_type }}</small>
+                    </div>
+                  </div>
+                  <button @click.stop="clearMikuGameSelection" class="btn btn-error btn-sm" style="cursor: pointer;">
+                    取消绑定
+                  </button>
+                </div>
+
+                <!-- 搜索按钮 -->
+                <button 
+                  v-else 
+                  @click.stop="showMikuGameSearch = !showMikuGameSearch" 
+                  class="btn btn-secondary"
+                  style="cursor: pointer; width: 100%;"
+                >
+                  {{ showMikuGameSearch ? '隐藏搜索' : '搜索MikuGame游戏' }}
+                </button>
+
+                <!-- 搜索界面 -->
+                <div v-if="showMikuGameSearch && !selectedMikuGame" class="miku-game-search">
+                  <div class="search-input-group">
+                    <input 
+                      v-model="mikuGameSearchKeyword" 
+                      type="text" 
+                      placeholder="输入游戏名称搜索..."
+                      class="form-input"
+                      @keyup.enter="searchMikuGames"
+                    >
+                    <button 
+                      @click.stop="searchMikuGames" 
+                      :disabled="isSearchingMikuGame || !mikuGameSearchKeyword.trim()"
+                      class="btn btn-primary"
+                      style="cursor: pointer;"
+                    >
+                      {{ isSearchingMikuGame ? '搜索中...' : '搜索' }}
+                    </button>
+                  </div>
+
+                  <!-- 搜索结果 -->
+                  <div v-if="mikuGameSearchResults.length > 0" class="search-results">
+                    <div 
+                      v-for="result in mikuGameSearchResults" 
+                      :key="result.id"
+                      class="search-result-item"
+                      @click="selectMikuGame(result)"
+                      style="cursor: pointer;"
+                    >
+                      <img v-if="result.cover_image_url" :src="result.cover_image_url" alt="封面" class="result-cover">
+                      <div class="result-info">
+                        <strong>{{ result.title }}</strong>
+                        <small>{{ result.version || '未知版本' }}</small>
+                        <div class="result-tags">
+                          <span v-for="tag in result.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else-if="mikuGameSearchKeyword && !isSearchingMikuGame" class="no-results">
+                    未找到相关游戏
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -613,5 +769,146 @@ onMounted(async () => {
   color: var(--error-color);
   font-size: var(--font-xs);
   margin-top: var(--space-2);
+}
+
+/* MikuGame绑定相关样式 */
+.selected-miku-game {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--gray-50);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+}
+
+.miku-game-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.miku-game-cover {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--radius-base);
+}
+
+.miku-game-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.miku-game-details strong {
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+}
+
+.miku-game-details small {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.game-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 10px !important;
+}
+
+.miku-game-search {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: var(--gray-50);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+}
+
+.search-input-group {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.search-input-group .form-input {
+  flex: 1;
+}
+
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: white;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-base);
+}
+
+.search-result-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.result-cover {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.result-info strong {
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+}
+
+.result-info small {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.result-tags {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+
+.result-tags .tag {
+  padding: 2px 6px;
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+}
+
+.no-results {
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
 }
 </style>

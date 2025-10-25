@@ -435,6 +435,100 @@ fn open_url_in_browser(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 从URL下载图片并保存到指定路径
+#[tauri::command]
+async fn download_image(url: String, save_path: String) -> Result<String, String> {
+    // 创建父目录
+    if let Some(parent) = Path::new(&save_path).parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+    
+    // 下载图片
+    let response = reqwest::blocking::get(&url)
+        .map_err(|e| format!("Failed to download image: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("Failed to download image: HTTP {}", response.status()));
+    }
+    
+    let bytes = response.bytes()
+        .map_err(|e| format!("Failed to read image bytes: {}", e))?;
+    
+    // 保存图片
+    fs::write(&save_path, &bytes)
+        .map_err(|e| format!("Failed to save image: {}", e))?;
+    
+    Ok(save_path)
+}
+
+/// 批量下载图片
+#[tauri::command]
+async fn download_images(urls: Vec<String>, save_dir: String) -> Result<Vec<String>, String> {
+    // 创建保存目录
+    fs::create_dir_all(&save_dir)
+        .map_err(|e| format!("Failed to create directory: {}", e))?;
+    
+    let mut saved_paths = Vec::new();
+    
+    for (index, url) in urls.iter().enumerate() {
+        // 从URL提取文件扩展名，如果没有则默认为.jpg
+        let extension = url.split('.').last()
+            .and_then(|ext| {
+                let ext = ext.split('?').next()?; // 移除查询参数
+                if matches!(ext.to_lowercase().as_str(), "jpg" | "jpeg" | "png" | "gif" | "webp") {
+                    Some(ext)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or("jpg");
+        
+        let file_name = format!("image_{}.{}", index, extension);
+        let save_path = format!("{}/{}", save_dir, file_name);
+        
+        match download_image_sync(&url, &save_path) {
+            Ok(path) => saved_paths.push(path),
+            Err(e) => {
+                eprintln!("Failed to download image {}: {}", url, e);
+                // 继续下载其他图片
+            }
+        }
+    }
+    
+    if saved_paths.is_empty() {
+        return Err("No images were downloaded successfully".to_string());
+    }
+    
+    Ok(saved_paths)
+}
+
+// 同步版本的图片下载函数
+fn download_image_sync(url: &str, save_path: &str) -> Result<String, String> {
+    // 创建父目录
+    if let Some(parent) = Path::new(save_path).parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+    
+    // 下载图片
+    let response = reqwest::blocking::get(url)
+        .map_err(|e| format!("Failed to download image: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("Failed to download image: HTTP {}", response.status()));
+    }
+    
+    let bytes = response.bytes()
+        .map_err(|e| format!("Failed to read image bytes: {}", e))?;
+    
+    // 保存图片
+    fs::write(save_path, &bytes)
+        .map_err(|e| format!("Failed to save image: {}", e))?;
+    
+    Ok(save_path.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -460,7 +554,9 @@ pub fn run() {
             create_game_status,
             read_game_status,
             update_game_status,
-            scan_games_for_status
+            scan_games_for_status,
+            download_image,
+            download_images
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
