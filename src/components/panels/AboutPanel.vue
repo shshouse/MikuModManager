@@ -116,7 +116,7 @@ function openLink(url: string) {
 
 .about-content {
   width: 100%;
-  max-width: 700px;
+  max-width: 900px;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);

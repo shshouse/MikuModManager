@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
+import { convertFileSrc } from '@tauri-apps/api/tauri'
 
 interface CustomGame {
   id: string
@@ -716,7 +717,25 @@ function prevImage() {
 // 将图片路径转换为可用的URL
 function getImageUrl(path: string): string {
   // Tauri的convertFileSrc会将本地文件路径转换为可以在浏览器中使用的URL
-  return `file://${path}`
+  try {
+    if (!path) {
+      console.warn('Empty image path')
+      return ''
+    }
+    
+    // 移除可能的Windows UNC路径前缀 \\?\
+    let normalizedPath = path.replace(/^\\\\\?\\/, '')
+    
+    console.log('Original image path:', path)
+    console.log('Normalized image path:', normalizedPath)
+    
+    const url = convertFileSrc(normalizedPath)
+    console.log('Converted to URL:', url)
+    return url
+  } catch (error) {
+    console.error('Failed to convert file path:', path, error)
+    return ''
+  }
 }
 </script>
 

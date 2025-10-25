@@ -610,7 +610,7 @@ onMounted(async () => {
 .dialog {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
-  width: 500px;
+  width: 600px;
   max-width: 90vw;
   max-height: 90vh;
   overflow: hidden;

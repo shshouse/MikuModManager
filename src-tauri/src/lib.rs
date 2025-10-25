@@ -466,7 +466,8 @@ async fn download_image(url: String, save_path: String) -> Result<String, String
 #[tauri::command]
 async fn download_images(urls: Vec<String>, save_dir: String) -> Result<Vec<String>, String> {
     // 创建保存目录
-    fs::create_dir_all(&save_dir)
+    let save_dir_path = PathBuf::from(&save_dir);
+    fs::create_dir_all(&save_dir_path)
         .map_err(|e| format!("Failed to create directory: {}", e))?;
     
     let mut saved_paths = Vec::new();
@@ -485,10 +486,18 @@ async fn download_images(urls: Vec<String>, save_dir: String) -> Result<Vec<Stri
             .unwrap_or("jpg");
         
         let file_name = format!("image_{}.{}", index, extension);
-        let save_path = format!("{}/{}", save_dir, file_name);
+        let save_path = save_dir_path.join(&file_name);
+        let save_path_str = save_path.to_string_lossy().to_string();
         
-        match download_image_sync(&url, &save_path) {
-            Ok(path) => saved_paths.push(path),
+        match download_image_sync(&url, &save_path_str) {
+            Ok(_) => {
+                // 返回规范化的绝对路径
+                let canonical_path = save_path.canonicalize()
+                    .unwrap_or(save_path.clone())
+                    .to_string_lossy()
+                    .to_string();
+                saved_paths.push(canonical_path);
+            },
             Err(e) => {
                 eprintln!("Failed to download image {}: {}", url, e);
                 // 继续下载其他图片
