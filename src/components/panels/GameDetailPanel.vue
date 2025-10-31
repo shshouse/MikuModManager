@@ -19,42 +19,51 @@ interface CustomGame {
   coverImage?: string
 }
 
-interface Patch {
+// 模组管理相关接口
+interface ModConfig {
+  id: string
   name: string
-  path: string
+  version: string
+  author: string
+  description: string
+  game: string
+  installPath: string
+  files: string[]
+  dependencies: string[]
+  conflicts: string[]
+  installDate?: string
+  installed?: boolean
+  enabled?: boolean
+  hasConflicts?: boolean
 }
 
-interface BackupFile {
-  path: string
-  hash: string
-  size: number
+interface InstallLog {
+  modId: string
+  modName: string
+  installDate: string
+  installedFiles: string[]
+  replacedFiles: string[]
 }
 
-interface Backup {
-  name: string
-  timestamp: string
-  path: string
-  description?: string
-  backupInfo?: {
-    gameName: string
-    gameVersion?: string
-    patchesInstalled?: string[]
-    patchOrder?: string[]
-    conflicts?: ConflictInfo[]
-    backedUpFiles: BackupFile[]
-    installedFiles: BackupFile[]
-  }
+interface FileMapping {
+  [filePath: string]: string[]
 }
+
+interface GameStatus {
+  game_name: string
+  game_path: string
+  launch_options: string
+  installed_mods: string[]
+  play_time: number  // 游玩时长，单位：秒
+  last_updated: string
+}
+
 
 const props = defineProps<{
   gameId: string
 }>()
 
 const game = ref<CustomGame | null>(null)
-const patches = ref<Patch[]>([])
-const backups = ref<Backup[]>([])
-const selectedPatches = ref<Set<string>>(new Set())
-const selectedBackup = ref<string>('')
 const isLoading = ref(false)
 const newGameDirectory = ref('')
 const isEditingDirectory = ref(false)
@@ -71,6 +80,15 @@ const isEditingBinding = ref(false)
 
 const appDirectory = ref('')
 const backgroundImage = ref('')
+
+// 模组管理相关状态
+const mods = ref<ModConfig[]>([])
+const isApplyingMods = ref(false)
+
+// 计算是否有模组更改
+const hasModChanges = computed(() => {
+  return mods.value.some(mod => mod.installed !== mod.enabled)
+})
 
 // 获取背景图片（从游戏图片中随机选择，如果没有则显示默认图）
 const heroBackground = computed(() => {
@@ -95,8 +113,7 @@ function selectRandomBackground() {
 onMounted(async () => {
   await loadAppDirectory()
   await loadGame()
-  await scanPatches()
-  await scanBackups()
+  await loadMods()
   selectRandomBackground()
 })
 
@@ -160,86 +177,6 @@ async function loadGame() {
   }
 }
 
-async function scanPatches() {
-  if (!game.value) return
-  
-  try {
-    const patchDir = `${appDirectory.value}/game/${game.value.name}/patch`
-    const patchFolders = await invoke('scan_directory', { path: patchDir }) as string[]
-    
-    patches.value = patchFolders.map((folder: string) => ({
-      name: folder,
-      path: `${patchDir}/${folder}`
-    }))
-  } catch (error) {
-    console.error('Failed to scan patches:', error)
-    patches.value = []
-  }
-}
-
-async function scanBackups() {
-  if (!game.value) return
-  
-  try {
-    const backupDir = `${appDirectory.value}/game/${game.value.name}/backup`
-    const backupFolders = await invoke('scan_directory', { path: backupDir }) as string[]
-    
-    const backupPromises = backupFolders.map(async (folder: string) => {
-      const backupPath = `${backupDir}/${folder}`
-      const backup: Backup = {
-        name: folder,
-        timestamp: formatTimestamp(folder),
-        path: backupPath,
-        description: undefined,
-        backupInfo: undefined
-      }
-      
-      // Try to load backup info if exists
-      try {
-        const infoFile = `${backupPath}/backup_info.json`
-        const infoExists = await invoke('file_exists', { path: infoFile })
-        if (infoExists) {
-          const infoContent = await invoke('read_file', { path: infoFile }) as string
-          backup.backupInfo = JSON.parse(infoContent)
-        }
-      } catch (e) {
-        console.warn('Failed to load backup info:', e)
-      }
-      
-      return backup
-    })
-    
-    backups.value = (await Promise.all(backupPromises))
-      .sort((a: Backup, b: Backup) => b.name.localeCompare(a.name)) // Sort by timestamp desc
-  } catch (error) {
-    console.error('Failed to scan backups:', error)
-    backups.value = []
-  }
-}
-
-function formatTimestamp(timestamp: string): string {
-  try {
-    // Assuming timestamp format: YYYYMMDD_HHMMSS
-    const year = timestamp.substring(0, 4)
-    const month = timestamp.substring(4, 6)
-    const day = timestamp.substring(6, 8)
-    const hour = timestamp.substring(9, 11)
-    const minute = timestamp.substring(11, 13)
-    const second = timestamp.substring(13, 15)
-    
-    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
-  } catch {
-    return timestamp
-  }
-}
-
-function togglePatch(patchName: string) {
-  if (selectedPatches.value.has(patchName)) {
-    selectedPatches.value.delete(patchName)
-  } else {
-    selectedPatches.value.add(patchName)
-  }
-}
 
 async function selectNewDirectory() {
   try {
@@ -351,418 +288,6 @@ async function launchGame() {
   }
 }
 
-// Calculate MD5 hash of a file
-async function calculateFileHash(filePath: string): Promise<string> {
-  try {
-    const hash = await invoke('calculate_file_md5', { path: filePath }) as string
-    return hash
-  } catch (error) {
-    console.warn('Failed to calculate MD5 hash for', filePath, ':', error)
-    return 'unknown'
-  }
-}
-
-// Create a detailed backup information object
-async function createBackupInfo(
-  gameName: string, 
-  gameDir: string,
-  backupDir: string,
-  patchesInstalled: string[],
-  backedUpFiles: string[],
-  installedFiles: string[]
-): Promise<any> {
-  const backupInfo: { 
-    gameName: string;
-    gameVersion: string;
-    timestamp: string;
-    patchesInstalled: string[];
-    backedUpFiles: BackupFile[];
-    installedFiles: BackupFile[];
-  } = {
-    gameName,
-    gameVersion: 'unknown', // Could be enhanced to detect game version
-    timestamp: new Date().toISOString(),
-    patchesInstalled,
-    backedUpFiles: [],
-    installedFiles: []
-  }
-  
-  // Add details for backed up files
-  for (const file of backedUpFiles) {
-    const relativePath = file.replace(backupDir, '').replace(/^[/\\]/, '')
-    const backupPath = `${backupDir}/${relativePath}`
-    
-    try {
-      const hash = await calculateFileHash(backupPath)
-      const size = Number(await invoke('get_file_size', { path: backupPath }).catch(() => 0))
-      
-      backupInfo.backedUpFiles.push({
-        path: relativePath,
-        hash,
-        size
-      })
-    } catch (e) {
-      console.warn('Failed to get info for backed up file:', file, e)
-    }
-  }
-  
-  // Add details for installed files
-  for (const file of installedFiles) {
-    try {
-      const hash = await calculateFileHash(file)
-      const size = Number(await invoke('get_file_size', { path: file }).catch(() => 0))
-      const relativePath = file.replace(gameDir, '').replace(/^[/\\]/, '')
-      
-      backupInfo.installedFiles.push({
-        path: relativePath,
-        hash,
-        size
-      })
-    } catch (e) {
-      console.warn('Failed to get info for installed file:', file, e)
-    }
-  }
-  
-  return backupInfo
-}
-
-// 检测文件冲突
-interface ConflictInfo {
-  file: string
-  patches: string[]
-}
-
-async function detectConflicts(): Promise<ConflictInfo[]> {
-  if (!game.value) return []
-  
-  const fileMap = new Map<string, string[]>()
-  
-  // 扫描所有选中的补丁，记录每个文件被哪些补丁修改
-  for (const patchName of selectedPatches.value) {
-    const patch = patches.value.find(p => p.name === patchName)
-    if (!patch) continue
-    
-    try {
-      const patchFiles = await invoke('get_all_files', { path: patch.path }) as string[]
-      
-      for (const file of patchFiles) {
-        const relativePath = file.replace(patch.path, '').replace(/^[/\\]/, '')
-        
-        if (!fileMap.has(relativePath)) {
-          fileMap.set(relativePath, [])
-        }
-        fileMap.get(relativePath)!.push(patchName)
-      }
-    } catch (error) {
-      console.error(`Failed to scan patch ${patchName}:`, error)
-    }
-  }
-  
-  // 找出冲突（同一文件被多个补丁修改）
-  const conflicts: ConflictInfo[] = []
-  for (const [file, patchList] of fileMap.entries()) {
-    if (patchList.length > 1) {
-      conflicts.push({ file, patches: patchList })
-    }
-  }
-  
-  return conflicts
-}
-
-async function installPatches() {
-  if (selectedPatches.value.size === 0 || !game.value) return
-  
-  // 检测冲突
-  const conflicts = await detectConflicts()
-  if (conflicts.length > 0) {
-    const conflictMsg = conflicts.map(c => 
-      `文件 "${c.file}" 被以下补丁同时修改：\n  ${c.patches.join(', ')}`
-    ).join('\n\n')
-    
-    const proceed = confirm(
-      `检测到 ${conflicts.length} 个文件冲突：\n\n${conflictMsg}\n\n` +
-      `后安装的补丁将覆盖先安装的补丁文件。\n是否继续安装？`
-    )
-    
-    if (!proceed) return
-  }
-  
-  isLoading.value = true
-  
-  try {
-    // 使用本地时间生成时间戳，避免UTC时差问题
-    const now = new Date();
-    const year = String(now.getFullYear());
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hour = String(now.getHours()).padStart(2, '0');
-    const minute = String(now.getMinutes()).padStart(2, '0');
-    const second = String(now.getSeconds()).padStart(2, '0');
-    const timestamp = `${year}${month}${day}_${hour}${minute}${second}`
-    const backupDir = `${appDirectory.value}/game/${game.value.name}/backup/${timestamp}`
-    
-    // Create backup directory
-    await invoke('create_directory', { path: backupDir })
-    
-    const backedUpFiles: string[] = []
-    const installedFiles: string[] = []
-    const patchOrder: string[] = [] // 记录补丁安装顺序
-    
-    for (const patchName of selectedPatches.value) {
-      patchOrder.push(patchName)
-      const patch = patches.value.find(p => p.name === patchName)
-      if (!patch) continue
-      
-      // Get all files in patch directory
-      const patchFiles = await invoke('get_all_files', { path: patch.path }) as string[]
-      
-      for (const file of patchFiles) {
-        const relativePath = file.replace(patch.path, '').replace(/^[/\\]/, '')
-        const targetPath = `${game.value.directory}/${relativePath}`
-        const backupPath = `${backupDir}/${relativePath}`
-        
-        // Check if target file exists and backup if needed
-        const targetExists = await invoke('file_exists', { path: targetPath })
-        if (targetExists) {
-          // 只备份第一次遇到的文件（原始文件）
-          const alreadyBackedUp = backedUpFiles.some(f => f === backupPath)
-          if (!alreadyBackedUp) {
-            await invoke('create_directory', { path: backupPath.substring(0, backupPath.lastIndexOf('/')) })
-            await invoke('copy_file', { from: targetPath, to: backupPath })
-            backedUpFiles.push(backupPath)
-          }
-        }
-        
-        // Copy patch file to target
-        await invoke('create_directory', { path: targetPath.substring(0, targetPath.lastIndexOf('/')) })
-        await invoke('copy_file', { from: file, to: targetPath })
-        
-        // 记录安装的文件（避免重复）
-        if (!installedFiles.includes(targetPath)) {
-          installedFiles.push(targetPath)
-        }
-      }
-    }
-    
-    // Create detailed backup info
-    const backupInfo = await createBackupInfo(
-      game.value.name,
-      game.value.directory,
-      backupDir,
-      patchOrder,
-      backedUpFiles,
-      installedFiles
-    )
-    
-    // 添加冲突信息到备份
-    backupInfo.conflicts = conflicts
-    backupInfo.patchOrder = patchOrder
-    
-    // Save backup info
-    await invoke('write_file', {
-      path: `${backupDir}/backup_info.json`,
-      content: JSON.stringify(backupInfo, null, 2)
-    })
-    
-    // Clear selection and refresh
-    selectedPatches.value.clear()
-    await scanBackups()
-    
-    const conflictWarning = conflicts.length > 0 
-      ? `\n\n注意：检测到 ${conflicts.length} 个文件冲突，已按补丁顺序覆盖安装。` 
-      : ''
-    
-    alert(`补丁安装完成！${conflictWarning}\n\n已创建备份并记录：\n- ${backedUpFiles.length} 个原始文件\n- ${installedFiles.length} 个安装文件\n- 完整的MD5哈希验证信息`)
-  } catch (error) {
-    console.error('Failed to install patches:', error)
-    alert('补丁安装失败：' + error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// Verify file integrity by comparing MD5 hashes
-async function verifyFileIntegrity(filePath: string, expectedHash: string): Promise<boolean> {
-  try {
-    if (expectedHash === 'unknown') return true // Skip verification if hash is unknown
-    
-    const actualHash = await calculateFileHash(filePath)
-    const isValid = actualHash === expectedHash
-    
-    if (!isValid) {
-      console.warn(`Hash mismatch for ${filePath}: expected ${expectedHash}, got ${actualHash}`)
-    }
-    
-    return isValid
-  } catch (error) {
-    console.error('Failed to verify file integrity:', error)
-    return false
-  }
-}
-
-
-
-async function rollbackToBackup() {
-  if (!selectedBackup.value || !game.value) return
-  
-  isLoading.value = true
-  
-  try {
-    const backup = backups.value.find(b => b.name === selectedBackup.value)
-    if (!backup) {
-      throw new Error('未找到选中的备份')
-    }
-    
-    const rollbackLog: string[] = []
-    rollbackLog.push(`回滚日志 - ${new Date().toISOString()}`)
-    rollbackLog.push(`游戏: ${game.value.name}`)
-    rollbackLog.push(`回滚到备份: ${backup.timestamp}`)
-    rollbackLog.push('---')
-    
-    // Try to use backup_info.json for more reliable rollback
-    
-    if (backup.backupInfo) {
-      // Using the detailed backup info
-      rollbackLog.push('使用详细备份信息进行回滚')
-      
-      // Restore backed up files with integrity check
-      for (const fileInfo of backup.backupInfo.backedUpFiles) {
-        const backupFilePath = `${backup.path}/${fileInfo.path}`
-        const targetPath = `${game.value.directory}/${fileInfo.path}`
-        
-        const backupExists = await invoke('file_exists', { path: backupFilePath })
-        if (backupExists) {
-          // Verify file integrity before restoring
-          const isIntegrityVerified = await verifyFileIntegrity(backupFilePath, fileInfo.hash)
-          
-          if (isIntegrityVerified) {
-            await invoke('copy_file', { from: backupFilePath, to: targetPath })
-            rollbackLog.push(`已恢复: ${fileInfo.path} [完整性验证通过]`)
-          } else {
-            rollbackLog.push(`警告: ${fileInfo.path} 完整性验证失败，但仍尝试恢复`)
-            await invoke('copy_file', { from: backupFilePath, to: targetPath })
-          }
-        } else {
-          rollbackLog.push(`错误: 备份文件不存在: ${fileInfo.path}`)
-        }
-      }
-      
-      // Remove files that were only installed (not backed up)
-      for (const fileInfo of backup.backupInfo.installedFiles) {
-        // Check if this file was not backed up
-        const isBackedUp = backup.backupInfo.backedUpFiles.some(
-          backedUp => backedUp.path === fileInfo.path
-        )
-        
-        if (!isBackedUp) {
-          const targetPath = `${game.value.directory}/${fileInfo.path}`
-          const fileExists = await invoke('file_exists', { path: targetPath })
-          if (fileExists) {
-            await invoke('delete_file', { path: targetPath })
-            rollbackLog.push(`已删除: ${fileInfo.path}`)
-          }
-        }
-      }
-    } else {
-      // No backup info available, cannot perform rollback
-      throw new Error('备份信息不完整，无法执行回滚操作')
-    }
-    
-    // Write rollback log
-    const rollbackLogPath = `${backup.path}/rollback_${new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '_')}.log`
-    await invoke('write_file', { path: rollbackLogPath, content: rollbackLog.join('\n') })
-    
-    selectedBackup.value = ''
-    alert('回滚完成！\n已验证并恢复所有文件到备份时的状态。')
-  } catch (error) {
-    console.error('Failed to rollback:', error)
-    alert('回滚失败：' + error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-async function openPatchDirectory() {
-  if (!game.value) return
-  
-  try {
-    // 确保目录存在
-    const patchDir = `${appDirectory.value}/game/${game.value.name}/patch`
-    
-    // 先检查目录是否存在
-    const exists = await invoke('file_exists', { path: patchDir }) as boolean
-    
-    if (!exists) {
-      // 如果不存在，先创建目录
-      await invoke('create_directory', { path: patchDir })
-    }
-    
-    // 打开目录
-    await invoke('open_directory', { path: patchDir })
-  } catch (error) {
-    console.error('Failed to open patch directory:', error)
-    alert('打开补丁目录失败：' + error)
-  }
-}
-
-async function importMod() {
-  if (!game.value) return
-  
-  try {
-    // 选择压缩包文件
-    const selected = await open({
-      multiple: false,
-      directory: false,
-      title: '选择模组压缩包',
-      filters: [{
-        name: '压缩包',
-        extensions: ['zip', 'rar', '7z']
-      }]
-    })
-    
-    if (!selected) return
-    
-    isLoading.value = true
-    
-    try {
-      const patchDir = `${appDirectory.value}/game/${game.value.name}/patch`
-      
-      // 调用后端解压函数
-      const result = await invoke('extract_mod_archive', {
-        archivePath: selected as string,
-        targetDir: patchDir
-      }) as string
-      
-      alert(`模组导入成功！\n解压到: ${result}`)
-      
-      // 刷新补丁列表
-      await scanPatches()
-      
-    } catch (error) {
-      console.error('Failed to import mod:', error)
-      alert('导入模组失败: ' + error)
-    } finally {
-      isLoading.value = false
-    }
-  } catch (error) {
-    console.error('Failed to open file dialog:', error)
-    alert('打开文件选择器失败: ' + error)
-  }
-}
-
-async function openBackupDirectory() {
-  if (!selectedBackup.value) return
-  
-  const backup = backups.value.find(b => b.name === selectedBackup.value)
-  if (!backup) return
-  
-  try {
-    await invoke('open_directory', { path: backup.path })
-  } catch (error) {
-    console.error('Failed to open backup directory:', error)
-    alert('打开备份目录失败：' + error)
-  }
-}
 
 // MikuGame 绑定功能
 async function searchMikuGames() {
@@ -880,10 +405,604 @@ async function unbindMikuGame() {
     }
     
     alert('已解除绑定')
-  } catch (error) {
+    } catch (error) {
     console.error('解除绑定失败:', error)
     alert('操作失败: ' + error)
   }
+}
+
+// =========================
+// 模组管理功能
+// =========================
+
+// 加载所有模组
+async function loadMods() {
+  if (!game.value) return
+  
+  try {
+    // 从 game/{游戏名}/mods/ 目录读取模组
+    const modsDir = `${appDirectory.value}/game/${game.value.name}/mods`
+    
+    // 检查目录是否存在
+    const modsDirExists = await invoke('file_exists', { path: modsDir }) as boolean
+    if (!modsDirExists) {
+      console.warn(`模组目录不存在: ${modsDir}`)
+      mods.value = []
+      return
+    }
+    
+    const modFolders = await invoke('scan_directory', { path: modsDir }) as string[]
+    
+    // 读取 game_status.json，获取已安装模组列表
+    let installedMods: Set<string> = new Set()
+    
+    try {
+      const gameStatusPath = `${appDirectory.value}/game/${game.value.name}/game_status.json`
+      const statusExists = await invoke('file_exists', { path: gameStatusPath }) as boolean
+      
+      if (statusExists) {
+        const statusContent = await invoke('read_file', { path: gameStatusPath }) as string
+        const gameStatus = JSON.parse(statusContent) as GameStatus
+        installedMods = new Set(gameStatus.installed_mods || [])
+      }
+    } catch (error) {
+      console.error('读取游戏状态失败:', error)
+    }
+    
+    const modPromises = modFolders.map(async (folder: string) => {
+      const modPath = `${modsDir}/${folder}`
+      const configPath = `${modPath}/mod.json`
+      
+      try {
+        const configExists = await invoke('file_exists', { path: configPath }) as boolean
+        if (!configExists) {
+          console.warn(`模组 ${folder} 缺少 mod.json 文件`)
+          return null
+        }
+        
+        const configContent = await invoke('read_file', { path: configPath }) as string
+        const config = JSON.parse(configContent) as ModConfig
+        
+        // 使用文件夹名作为模组ID（不再从mod.json读取）
+        config.id = folder
+        
+        const modFilesPath = `${modPath}/mod`
+        const modFilesExists = await invoke('file_exists', { path: modFilesPath }) as boolean
+        if (!modFilesExists) {
+          console.warn(`模组 ${folder} 缺少 mod 文件夹`)
+          return null
+        }
+        
+        const files = await invoke('get_all_files', { path: modFilesPath }) as string[]
+        config.files = files.map(file => file.replace(modFilesPath, '').replace(/^[/\\]/, ''))
+        
+        config.installed = installedMods.has(folder)  // 使用文件夹名检查
+        config.enabled = config.installed
+        
+        return config
+      } catch (error) {
+        console.error(`加载模组 ${folder} 失败:`, error)
+        return null
+      }
+    })
+    
+    const loadedMods = (await Promise.all(modPromises)).filter(mod => mod !== null)
+    mods.value = loadedMods
+    
+  } catch (error) {
+    console.error('加载模组列表失败:', error)
+    mods.value = []
+  }
+}
+
+// 应用模组更改
+async function applyModChanges() {
+  if (!game.value) return
+  
+  isApplyingMods.value = true
+  
+  try {
+    const modsToUninstall = mods.value.filter(m => m.installed && !m.enabled)
+    const modsToInstall = mods.value.filter(m => !m.installed && m.enabled)
+    
+    console.log('需要卸载:', modsToUninstall.map(m => m.name))
+    console.log('需要安装:', modsToInstall.map(m => m.name))
+    
+    if (modsToUninstall.length === 0 && modsToInstall.length === 0) {
+      alert('没有需要应用的更改')
+      return
+    }
+    
+    // 步骤1: 先执行所有卸载
+    if (modsToUninstall.length > 0) {
+      for (const mod of modsToUninstall) {
+        await uninstallMod(mod)
+      }
+    }
+    
+    // 步骤2: 检测待安装模组间的文件冲突
+    if (modsToInstall.length > 1) {
+      const conflictResult = await detectInstallConflicts(modsToInstall)
+      if (conflictResult.hasConflict) {
+        const selectedMod = await showModSelectionDialog(conflictResult.conflictingMods, conflictResult.conflictingFiles)
+        if (!selectedMod) {
+          alert('安装已取消')
+          isApplyingMods.value = false
+          return
+        }
+        
+        await installModInternal(selectedMod)
+      } else {
+        for (const mod of modsToInstall) {
+          await installModInternal(mod)
+        }
+      }
+    } else if (modsToInstall.length === 1) {
+      await installModInternal(modsToInstall[0])
+    }
+    
+    await loadMods()
+    alert('更改已成功应用！')
+    
+  } catch (error) {
+    console.error('应用更改失败:', error)
+    alert(`应用更改失败: ${error}`)
+  } finally {
+    isApplyingMods.value = false
+  }
+}
+
+// 安装模组（内部方法）
+async function installModInternal(mod: ModConfig) {
+  if (!game.value) return
+  
+  try {
+    const gameDir = `${appDirectory.value}/game/${game.value.name}`
+    const installLogDir = `${gameDir}/installLog`
+    const backupDir = `${gameDir}/backup`
+    
+    await invoke('create_directory', { path: installLogDir })
+    await invoke('create_directory', { path: backupDir })
+    
+    const installLog: InstallLog = {
+      modId: mod.id,
+      modName: mod.name,
+      installDate: new Date().toISOString(),
+      installedFiles: [],
+      replacedFiles: []
+    }
+    
+    const modFilesPath = `${gameDir}/mods/${mod.id}/mod`
+    
+    const { hasConflict, conflictingMods, conflictingFiles } = await checkConflictWithInstalled(mod)
+    
+    if (hasConflict) {
+      const confirmed = confirm(
+        `警告：安装模组 "${mod.name}" 将会影响以下已安装模组的效果：\n\n` +
+        `${conflictingMods.map(m => `- ${m}`).join('\n')}\n\n` +
+        `冲突文件：\n${conflictingFiles.map(f => `- ${f}`).join('\n')}\n\n` +
+        `是否继续安装？`
+      )
+      
+      if (!confirmed) {
+        console.log('用户取消安装')
+        return
+      }
+    }
+    
+    for (const file of mod.files) {
+      const sourcePath = `${modFilesPath}/${file}`
+      const targetPath = `${mod.installPath}/${file}`
+      const normalizedTargetPath = targetPath.replace(/\\/g, '/')
+      
+      const targetExists = await invoke('file_exists', { path: targetPath }) as boolean
+      
+      if (targetExists) {
+        const backupPath = `${backupDir}/${file}`
+        const backupExists = await invoke('file_exists', { path: backupPath }) as boolean
+        
+        if (!backupExists) {
+          const backupDirPath = backupPath.substring(0, backupPath.lastIndexOf('/'))
+          await invoke('create_directory', { path: backupDirPath })
+          await invoke('copy_file', { from: targetPath, to: backupPath })
+          installLog.replacedFiles.push(normalizedTargetPath)
+          console.log(`备份游戏原文件: ${targetPath} -> ${backupPath}`)
+        }
+      }
+      
+      const targetDirPath = targetPath.substring(0, targetPath.lastIndexOf('/'))
+      if (targetDirPath) {
+        await invoke('create_directory', { path: targetDirPath })
+      }
+      
+      await invoke('copy_file', { from: sourcePath, to: targetPath })
+      installLog.installedFiles.push(normalizedTargetPath)
+      console.log(`安装文件: ${sourcePath} -> ${targetPath}`)
+    }
+    
+    const logPath = `${installLogDir}/${mod.id}.json`
+    await invoke('write_file', {
+      path: logPath,
+      content: JSON.stringify(installLog, null, 2)
+    })
+    
+    await updateFileMapping(game.value.name, mod.id, mod.files.map(f => `${mod.installPath}/${f}`.replace(/\\/g, '/')), 'add')
+    await updateGameStatus(game.value.name, mod.id, 'install')
+    
+    console.log(`模组 "${mod.name}" 安装成功`)
+    
+  } catch (error) {
+    console.error('安装模组失败:', error)
+    throw error
+  }
+}
+
+// 卸载模组
+async function uninstallMod(mod: ModConfig) {
+  if (!game.value) return
+  
+  try {
+    const gameDir = `${appDirectory.value}/game/${game.value.name}`
+    const installLogPath = `${gameDir}/installLog/${mod.id}.json`
+    const backupDir = `${gameDir}/backup`
+    
+    const logExists = await invoke('file_exists', { path: installLogPath }) as boolean
+    if (!logExists) {
+      console.warn(`未找到安装日志: ${installLogPath}`)
+      return
+    }
+    
+    const logContent = await invoke('read_file', { path: installLogPath }) as string
+    const installLog: InstallLog = JSON.parse(logContent)
+    
+    for (const filePath of installLog.installedFiles) {
+      const fileExists = await invoke('file_exists', { path: filePath }) as boolean
+          if (fileExists) {
+        await invoke('delete_file', { path: filePath })
+        console.log(`删除文件: ${filePath}`)
+      }
+    }
+    
+    for (const filePath of installLog.replacedFiles) {
+      const relativePath = filePath.replace(mod.installPath + '/', '')
+      const backupPath = `${backupDir}/${relativePath}`
+      
+      const backupExists = await invoke('file_exists', { path: backupPath }) as boolean
+      if (backupExists) {
+        await invoke('copy_file', { from: backupPath, to: filePath })
+        console.log(`恢复备份文件: ${backupPath} -> ${filePath}`)
+      }
+    }
+    
+    await invoke('delete_file', { path: installLogPath })
+    await updateFileMapping(game.value.name, mod.id, installLog.installedFiles, 'remove')
+    await updateGameStatus(game.value.name, mod.id, 'uninstall')
+    
+    console.log(`模组 "${mod.name}" 卸载成功`)
+    
+  } catch (error) {
+    console.error('卸载模组失败:', error)
+    throw error
+  }
+}
+
+// 更新文件映射
+async function updateFileMapping(gameName: string, modId: string, files: string[], action: 'add' | 'remove') {
+  try {
+    const mappingPath = `${appDirectory.value}/game/${gameName}/installLog/file_mapping.json`
+    
+    let mapping: FileMapping = {}
+    const mappingExists = await invoke('file_exists', { path: mappingPath }) as boolean
+    
+    if (mappingExists) {
+      const mappingContent = await invoke('read_file', { path: mappingPath }) as string
+      mapping = JSON.parse(mappingContent)
+    }
+    
+    for (const file of files) {
+      const normalizedFile = file.replace(/\\/g, '/')
+      
+      if (action === 'add') {
+        if (!mapping[normalizedFile]) {
+          mapping[normalizedFile] = []
+        }
+        if (!mapping[normalizedFile].includes(modId)) {
+          mapping[normalizedFile].push(modId)
+        }
+      } else {
+        if (mapping[normalizedFile]) {
+          mapping[normalizedFile] = mapping[normalizedFile].filter(id => id !== modId)
+          if (mapping[normalizedFile].length === 0) {
+            delete mapping[normalizedFile]
+          }
+        }
+      }
+    }
+    
+    await invoke('write_file', {
+      path: mappingPath,
+      content: JSON.stringify(mapping, null, 2)
+    })
+    
+  } catch (error) {
+    console.error('更新文件映射失败:', error)
+  }
+}
+
+// 更新 game_status.json
+async function updateGameStatus(gameName: string, modId: string, action: 'install' | 'uninstall') {
+  try {
+    const gameStatusPath = `${appDirectory.value}/game/${gameName}/game_status.json`
+    
+    const statusExists = await invoke('file_exists', { path: gameStatusPath }) as boolean
+    
+    if (!statusExists) {
+      console.warn(`game_status.json 不存在: ${gameStatusPath}`)
+      return
+    }
+    
+    const statusContent = await invoke('read_file', { path: gameStatusPath }) as string
+    const gameStatus = JSON.parse(statusContent) as GameStatus
+    
+    if (!gameStatus.installed_mods) {
+      gameStatus.installed_mods = []
+    }
+    
+    if (action === 'install') {
+      if (!gameStatus.installed_mods.includes(modId)) {
+        gameStatus.installed_mods.push(modId)
+      }
+    } else {
+      gameStatus.installed_mods = gameStatus.installed_mods.filter(id => id !== modId)
+    }
+    
+    gameStatus.last_updated = new Date().toISOString()
+    
+    await invoke('write_file', {
+      path: gameStatusPath,
+      content: JSON.stringify(gameStatus, null, 2)
+    })
+    
+    console.log(`已更新 game_status.json: ${action} ${modId}`)
+    
+  } catch (error) {
+    console.error('更新游戏状态失败:', error)
+  }
+}
+
+// 检测待安装模组间的冲突
+async function detectInstallConflicts(modsToInstall: ModConfig[]): Promise<{
+  hasConflict: boolean
+  conflictingMods: ModConfig[]
+  conflictingFiles: string[]
+}> {
+  const fileToMods = new Map<string, ModConfig[]>()
+  
+  for (const mod of modsToInstall) {
+    for (const file of mod.files) {
+      const targetPath = `${mod.installPath}/${file}`.replace(/\\/g, '/')
+      
+      if (!fileToMods.has(targetPath)) {
+        fileToMods.set(targetPath, [])
+      }
+      fileToMods.get(targetPath)!.push(mod)
+    }
+  }
+  
+  const conflictingFiles: string[] = []
+  const conflictingModsSet = new Set<ModConfig>()
+  
+  for (const [filePath, modList] of fileToMods.entries()) {
+    if (modList.length > 1) {
+      conflictingFiles.push(filePath)
+      modList.forEach(mod => conflictingModsSet.add(mod))
+    }
+  }
+  
+  return {
+    hasConflict: conflictingFiles.length > 0,
+    conflictingMods: Array.from(conflictingModsSet),
+    conflictingFiles
+  }
+}
+
+// 检测与已安装模组的冲突
+async function checkConflictWithInstalled(mod: ModConfig): Promise<{
+  hasConflict: boolean
+  conflictingMods: string[]
+  conflictingFiles: string[]
+}> {
+  if (!game.value) return { hasConflict: false, conflictingMods: [], conflictingFiles: [] }
+  
+  const conflictingFiles: string[] = []
+  const conflictingMods: string[] = []
+  
+  try {
+    const mappingPath = `${appDirectory.value}/game/${game.value.name}/installLog/file_mapping.json`
+    
+    const mappingExists = await invoke('file_exists', { path: mappingPath }) as boolean
+    if (!mappingExists) {
+      return { hasConflict: false, conflictingMods: [], conflictingFiles: [] }
+    }
+    
+    const mappingContent = await invoke('read_file', { path: mappingPath }) as string
+    const mapping: FileMapping = JSON.parse(mappingContent)
+    
+    for (const file of mod.files) {
+      const targetPath = `${mod.installPath}/${file}`.replace(/\\/g, '/')
+      
+      if (mapping[targetPath] && mapping[targetPath].length > 0) {
+        conflictingFiles.push(file)
+        
+        for (const conflictModId of mapping[targetPath]) {
+          const conflictMod = mods.value.find(m => m.id === conflictModId)
+          if (conflictMod && !conflictingMods.includes(conflictMod.name)) {
+            conflictingMods.push(conflictMod.name)
+          }
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('检查冲突失败:', error)
+  }
+  
+  return {
+    hasConflict: conflictingFiles.length > 0,
+    conflictingMods,
+    conflictingFiles
+  }
+}
+
+// 显示模组选择对话框
+async function showModSelectionDialog(
+  conflictingMods: ModConfig[],
+  conflictingFiles: string[]
+): Promise<ModConfig | null> {
+  return new Promise((resolve) => {
+    const dialog = document.createElement('div')
+    dialog.className = 'conflict-dialog-overlay'
+    dialog.innerHTML = `
+      <div class="conflict-dialog">
+        <div class="conflict-dialog-header">
+          <h3>⚠️ 模组冲突检测</h3>
+        </div>
+        <div class="conflict-dialog-body">
+          <p>以下模组存在文件冲突，请选择要安装的模组：</p>
+          <div class="mod-selection-list">
+            ${conflictingMods.map((mod, index) => `
+              <label class="mod-selection-item">
+                <input type="radio" name="mod-select" value="${index}">
+                <div class="mod-selection-info">
+                  <strong>${mod.name}</strong>
+                  <small>版本: ${mod.version} | 作者: ${mod.author}</small>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+          <p style="margin-top: 15px; color: #e74c3c;">冲突文件（共 ${conflictingFiles.length} 个）：</p>
+          <ul class="conflict-file-list">
+            ${conflictingFiles.slice(0, 10).map(file => `<li>${file}</li>`).join('')}
+            ${conflictingFiles.length > 10 ? `<li>... 还有 ${conflictingFiles.length - 10} 个文件</li>` : ''}
+          </ul>
+        </div>
+        <div class="conflict-dialog-footer">
+          <button class="btn btn-secondary" id="cancel-all-btn">都不安装</button>
+          <button class="btn btn-primary" id="confirm-select-btn">安装选中的模组</button>
+        </div>
+      </div>
+    `
+    
+    const style = document.createElement('style')
+    style.textContent = `
+      .conflict-dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(4px);
+      }
+      .conflict-dialog {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 700px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      }
+      .conflict-dialog-header h3 {
+        margin: 0 0 20px 0;
+        color: #e74c3c;
+        font-size: 20px;
+      }
+      .conflict-dialog-body {
+        margin-bottom: 20px;
+      }
+      .mod-selection-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .mod-selection-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .mod-selection-item:hover {
+        border-color: #3498db;
+        background: #f0f8ff;
+      }
+      .mod-selection-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .mod-selection-info strong {
+        font-size: 16px;
+      }
+      .mod-selection-info small {
+        color: #666;
+        font-size: 13px;
+      }
+      .conflict-file-list {
+        max-height: 150px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        padding: 12px;
+        border-radius: 6px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        border: 1px solid #e0e0e0;
+      }
+      .conflict-file-list li {
+        margin: 4px 0;
+      }
+      .conflict-dialog-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+      }
+    `
+    
+    document.head.appendChild(style)
+    document.body.appendChild(dialog)
+    
+    const confirmBtn = document.getElementById('confirm-select-btn')
+    const cancelBtn = document.getElementById('cancel-all-btn')
+    
+    confirmBtn?.addEventListener('click', () => {
+      const selected = document.querySelector('input[name="mod-select"]:checked') as HTMLInputElement
+      if (selected) {
+        const index = parseInt(selected.value)
+        document.body.removeChild(dialog)
+        document.head.removeChild(style)
+        resolve(conflictingMods[index])
+      } else {
+        alert('请选择一个模组')
+      }
+    })
+    
+    cancelBtn?.addEventListener('click', () => {
+      document.body.removeChild(dialog)
+      document.head.removeChild(style)
+      resolve(null)
+    })
+  })
 }
 </script>
 
@@ -1101,124 +1220,58 @@ async function unbindMikuGame() {
           </div>
         </div>
 
-        <!-- 补丁安装模块 -->
+        <!-- 模组管理模块 -->
         <div class="card">
           <div class="card-header">
-            <h3>补丁安装</h3>
+            <h3>模组管理</h3>
             <div class="header-actions">
               <button 
-                @click="importMod"
-                :disabled="isLoading"
-                class="btn btn-primary btn-sm"
+                @click="applyModChanges"
+                :disabled="!hasModChanges || isApplyingMods"
+                class="btn btn-success btn-sm"
               >
-                导入模组
-              </button>
-              <button 
-                @click="openPatchDirectory"
-                class="btn btn-secondary btn-sm"
-              >
-                打开补丁目录
+                {{ isApplyingMods ? '应用中...' : '应用更改' }}
               </button>
             </div>
           </div>
           <div class="card-body">
-            <div v-if="patches.length === 0" class="empty-state">
-              <p>未找到可用补丁</p>
-              <small>补丁应放置在: game/{{ game.name }}/patch/ 目录下</small>
+            <div v-if="mods.length === 0" class="empty-state">
+              <p>暂无可用模组</p>
+              <small>模组应放置在 game/{{ game.name }}/mods/ 目录下<br>
+              每个文件夹对应一个模组，结构：mods/{文件夹名}/mod.json + mods/{文件夹名}/mod/</small>
             </div>
             <div v-else>
-              <div class="patches-list">
+              <div class="mods-list">
                 <div 
-                  v-for="patch in patches" 
-                  :key="patch.name"
-                  class="patch-item"
-                  :class="{ selected: selectedPatches.has(patch.name) }"
-                  @click="togglePatch(patch.name)"
+                  v-for="mod in mods" 
+                  :key="mod.id"
+                  class="mod-item"
+                  :class="{ enabled: mod.enabled }"
                 >
-                  <input 
-                    type="checkbox" 
-                    :checked="selectedPatches.has(patch.name)"
-                    @change.stop="togglePatch(patch.name)"
-                  >
-                  <div class="patch-info">
-                    <span class="patch-name">{{ patch.name }}</span>
-                    <small class="patch-path">{{ patch.path }}</small>
+                  <div class="mod-info-section">
+                    <div class="mod-header-row">
+                      <div class="mod-title-group">
+                        <h4 class="mod-name">{{ mod.name }}</h4>
+                        <div class="mod-meta-badges">
+                          <span class="badge badge-version">v{{ mod.version }}</span>
+                          <span class="badge badge-author">{{ mod.author }}</span>
                   </div>
                 </div>
-              </div>
-              <div class="install-actions">
-                <button 
-                  @click="installPatches"
-                  :disabled="selectedPatches.size === 0 || isLoading"
-                  class="btn btn-success"
-                >
-                  <span v-if="isLoading">安装中...</span>
-                  <span v-else>安装选中补丁 ({{ selectedPatches.size }})</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 备份回滚模块 -->
-        <div class="card">
-          <div class="card-header">
-            <h3>备份回滚</h3>
-          </div>
-          <div class="card-body">
-            <div v-if="backups.length === 0" class="empty-state">
-              <p>暂无可用备份</p>
-              <small>安装补丁时会自动创建备份</small>
-            </div>
-            <div v-else>
-              <div class="backups-list">
-                <div 
-                  v-for="backup in backups" 
-                  :key="backup.name"
-                  class="backup-item"
-                  :class="{ selected: selectedBackup === backup.name }"
-                  @click="selectedBackup = backup.name"
-                >
+                      <label class="toggle-switch">
                   <input 
-                    type="radio" 
-                    :value="backup.name"
-                    v-model="selectedBackup"
-                    name="backup"
-                  >
-                  <div class="backup-info">
-                    <span class="backup-name">{{ backup.timestamp }}</span>
-                    <div v-if="backup.backupInfo" class="backup-details">
-                      <small v-if="backup.backupInfo.patchesInstalled && backup.backupInfo.patchesInstalled.length > 0">
-                        📦 安装的补丁: {{ backup.backupInfo.patchesInstalled.join(', ') }}
-                      </small>
-                      <small v-if="backup.backupInfo.conflicts && backup.backupInfo.conflicts.length > 0" class="conflict-warning">
-                        ⚠️ 包含 {{ backup.backupInfo.conflicts.length }} 个文件冲突
-                      </small>
-                      <small>
-                        💾 备份: {{ backup.backupInfo.backedUpFiles.length }} 个文件 | 
-                        📥 安装: {{ backup.backupInfo.installedFiles.length }} 个文件
-                      </small>
+                          type="checkbox" 
+                          v-model="mod.enabled"
+                        >
+                        <span class="slider"></span>
+                        <span class="toggle-label">{{ mod.enabled ? '已启用' : '未启用' }}</span>
+                      </label>
                     </div>
-                    <small class="backup-path">{{ backup.path }}</small>
+                    <p class="mod-description">{{ mod.description }}</p>
+                    <div v-if="mod.installDate" class="mod-install-date">
+                      📅 安装时间: {{ new Date(mod.installDate).toLocaleString('zh-CN') }}
                   </div>
                 </div>
               </div>
-              <div class="rollback-actions">
-                <button 
-                  @click="rollbackToBackup"
-                  :disabled="!selectedBackup || isLoading"
-                  class="btn btn-warning"
-                >
-                  <span v-if="isLoading">回滚中...</span>
-                  <span v-else>回滚到选中备份</span>
-                </button>
-                <button 
-                  v-if="selectedBackup"
-                  @click="openBackupDirectory"
-                  class="btn btn-secondary"
-                >
-                  打开备份目录
-                </button>
               </div>
             </div>
           </div>
@@ -1837,5 +1890,147 @@ async function unbindMikuGame() {
   padding: var(--space-5);
   color: var(--text-muted);
   font-size: var(--font-sm);
+}
+
+/* 模组管理样式 */
+.mods-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mod-item {
+  padding: var(--space-4);
+  background: #fafbfc;
+  border: 2px solid #e1e4e8;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.mod-item:hover {
+  border-color: #a8b8d8;
+  background: #f3f5f7;
+  transform: translateX(2px);
+}
+
+.mod-item.enabled {
+  border-color: var(--success-color);
+  background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+  box-shadow: 0 2px 12px rgba(76, 200, 100, 0.2);
+}
+
+.mod-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mod-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.mod-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.mod-name {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mod-meta-badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+
+.badge-version {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.badge-author {
+  background: var(--gray-200);
+  color: var(--text-secondary);
+}
+
+.mod-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  line-height: 1.6;
+}
+
+.mod-install-date {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-3);
+  background: white;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--success-color);
+}
+
+/* Toggle Switch 样式 */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.toggle-switch input[type="checkbox"] {
+  display: none;
+}
+
+.slider {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background-color: var(--gray-300);
+  border-radius: 24px;
+  transition: background-color var(--transition-base);
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform var(--transition-base);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input[type="checkbox"]:checked + .slider {
+  background-color: var(--success-color);
+}
+
+.toggle-switch input[type="checkbox"]:checked + .slider::before {
+  transform: translateX(24px);
+}
+
+.toggle-label {
+  font-size: var(--font-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 </style>

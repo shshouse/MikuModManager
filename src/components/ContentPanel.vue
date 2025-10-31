@@ -2,7 +2,6 @@
 import { ref, watch } from 'vue'
 import ModsPanel from './panels/ModsPanel.vue'
 import GameDetailPanel from './panels/GameDetailPanel.vue'
-import ModManagerPanel from './panels/ModManagerPanel.vue'
 import FindModsPanel from './panels/FindModsPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
 import AboutPanel from './panels/AboutPanel.vue'
@@ -28,10 +27,6 @@ function openGame(gameId: string) {
   currentPanel.value = 'game-detail'
 }
 
-function openModManager() {
-  currentPanel.value = 'mod-manager'
-}
-
 function backToMods() {
   currentPanel.value = 'mods'
   currentGameId.value = ''
@@ -44,15 +39,11 @@ function backToMods() {
       <ModsPanel 
         v-if="currentPanel === 'mods'" 
         @open-game="openGame"
-        @open-mod-manager="openModManager"
       />
       <GameDetailPanel 
         v-if="currentPanel === 'game-detail'" 
         :game-id="currentGameId"
         @back="backToMods"
-      />
-      <ModManagerPanel 
-        v-if="currentPanel === 'mod-manager'" 
       />
       <FindModsPanel 
         v-if="currentPanel === 'find-mods'" 
