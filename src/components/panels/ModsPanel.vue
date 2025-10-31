@@ -212,15 +212,15 @@ async function addGame() {
         console.log('Created game-specific directory:', gameSpecificDir)
       }
       
-      // Create patch directory
-      const patchDir = `${gameSpecificDir}/patch`
-      const patchDirExists = await invoke('file_exists', { path: patchDir })
-      if (!patchDirExists) {
-        await invoke('create_directory', { path: patchDir })
-        console.log('Created patch directory:', patchDir)
+      // Create mods directory
+      const modsDir = `${gameSpecificDir}/mods`
+      const modsDirExists = await invoke('file_exists', { path: modsDir })
+      if (!modsDirExists) {
+        await invoke('create_directory', { path: modsDir })
+        console.log('Created mods directory:', modsDir)
       }
       
-      // Create backup directory
+      // Create backup directory (for mod backups)
       const backupDir = `${gameSpecificDir}/backup`
       const backupDirExists = await invoke('file_exists', { path: backupDir })
       if (!backupDirExists) {
@@ -228,14 +228,23 @@ async function addGame() {
         console.log('Created backup directory:', backupDir)
       }
       
-      // Create game_status.json file
+      // Create installLog directory (for mod installation logs)
+      const installLogDir = `${gameSpecificDir}/installLog`
+      const installLogDirExists = await invoke('file_exists', { path: installLogDir })
+      if (!installLogDirExists) {
+        await invoke('create_directory', { path: installLogDir })
+        console.log('Created installLog directory:', installLogDir)
+      }
+      
+      // Create game_status.json file in game manager directory
       try {
         await invoke('create_game_status', {
           gameName: game.name,
-          gamePath: game.directory,
-          launchOptions: ''
+          gamePath: gameSpecificDir,  // 游戏管理目录（存放game_status.json）
+          launchOptions: '',
+          gameInstallPath: game.directory  // 游戏实际安装路径
         })
-        console.log('Created game_status.json for:', game.name)
+        console.log('Created game_status.json for:', game.name, 'at', gameSpecificDir)
       } catch (error) {
         console.error('Failed to create game_status.json:', error)
       }
@@ -330,10 +339,23 @@ onMounted(async () => {
     for (const gamePath of gamesWithoutStatus) {
       try {
         const gameName = gamePath.split(/[/\\]/).pop() || 'Unknown Game'
+        
+        // 尝试从localStorage获取游戏的实际安装路径
+        let gameInstallPath = ''
+        const saved = localStorage.getItem('customGames')
+        if (saved) {
+          const savedGames: CustomGame[] = JSON.parse(saved)
+          const matchedGame = savedGames.find(g => g.name === gameName)
+          if (matchedGame) {
+            gameInstallPath = matchedGame.directory
+          }
+        }
+        
         await invoke('create_game_status', {
           gameName: gameName,
           gamePath: gamePath,
-          launchOptions: ''
+          launchOptions: '',
+          gameInstallPath: gameInstallPath || undefined
         })
         console.log('Created missing game_status.json for:', gameName)
       } catch (error) {

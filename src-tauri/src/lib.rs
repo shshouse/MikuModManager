@@ -226,20 +226,23 @@ struct GameStatus {
     game_path: String,
     launch_options: String,
     installed_mods: Vec<String>,
+    play_time: u64, // 游玩时长，单位：秒
     last_updated: String,
 }
 
 #[tauri::command]
 fn create_game_status(
     game_name: String,
-    game_path: String,
+    game_path: String,  // 游戏管理目录（存放game_status.json的位置，如：app_dir/game/游戏名）
     launch_options: String,
+    game_install_path: Option<String>,  // 游戏实际安装路径（可选）
 ) -> Result<String, String> {
     let status = GameStatus {
-        game_name,
-        game_path: game_path.clone(),
+        game_name: game_name.clone(),
+        game_path: game_install_path.unwrap_or_default(), // 游戏实际安装路径
         launch_options,
         installed_mods: Vec::new(),
+        play_time: 0, // 初始游玩时长为0秒
         last_updated: chrono::Local::now().to_rfc3339(),
     };
     
@@ -295,6 +298,7 @@ fn update_game_status(
             game_path: game_path.clone(),
             launch_options: String::new(),
             installed_mods: Vec::new(),
+            play_time: 0,
             last_updated: chrono::Local::now().to_rfc3339(),
         }
     };
