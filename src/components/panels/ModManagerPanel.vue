@@ -14,7 +14,7 @@
     <div class="panel-body">
       <div v-if="mods.length === 0" class="empty-state">
         <p>暂无模组，请将模组文件夹放置在 mod/ 目录下</p>
-        <p>每个文件夹对应一个模组，结构：mod/{文件夹名}/mod.json + mod/{文件夹名}/mod/</p>
+        <p>每个文件夹对应一个模组，结构：mod/{文件夹名}/_mikumodinfo.json + 模组文件</p>
       </div>
 
       <div v-else class="mods-list">
@@ -22,7 +22,7 @@
           v-for="mod in mods" 
           :key="mod.id" 
           class="card mod-item"
-          :class="{ 'installed': mod.installed, 'conflict': mod.hasConflicts }"
+          :class="{ 'installed': mod.installed, 'conflict': mod.hasConflicts, 'non-mikumod': !mod.game }"
         >
           <div class="card-body">
             <div class="mod-info">
@@ -30,7 +30,8 @@
               <div class="mod-meta">
                 <span class="badge badge-secondary">版本: {{ mod.version }}</span>
                 <span class="badge badge-secondary">作者: {{ mod.author }}</span>
-                <span class="badge badge-info">游戏: {{ mod.game }}</span>
+                <span v-if="mod.game" class="badge badge-info">游戏: {{ mod.game }}</span>
+                <span v-else class="badge badge-warning">需要配置文件</span>
               </div>
               <p class="description">{{ mod.description }}</p>
               
@@ -48,14 +49,15 @@
             </div>
 
             <div class="mod-actions">
-              <label class="toggle-switch">
+              <label class="toggle-switch" :class="{ 'disabled': !mod.game }">
                 <input 
                   type="checkbox" 
                   v-model="mod.enabled"
-                  @change="onModToggle(mod)"
+                  @change="onModToggle"
+                  :disabled="!mod.game"
                 >
                 <span class="slider"></span>
-                <span class="toggle-label">{{ mod.enabled ? '已启用' : '未启用' }}</span>
+                <span class="toggle-label">{{ !mod.game ? '无法安装' : (mod.enabled ? '已启用' : '未启用') }}</span>
               </label>
               
               <button @click="viewModDetails(mod)" class="btn btn-secondary">详情</button>
@@ -129,7 +131,7 @@
             <input 
               type="checkbox" 
               v-model="selectedMod.enabled"
-              @change="onModToggle(selectedMod)"
+              @change="onModToggle"
             >
             <span class="slider"></span>
             <span class="toggle-label">{{ selectedMod.enabled ? '已启用' : '未启用' }}</span>
@@ -237,37 +239,43 @@ async function loadMods() {
     
     const modPromises = modFolders.map(async (folder: string) => {
       const modPath = `${modsDir}/${folder}`
-      const configPath = `${modPath}/mod.json`
+      const configPath = `${modPath}/_mikumodinfo.json`
       
       try {
-        // 检查配置文件是否存在
         const configExists = await invoke('file_exists', { path: configPath }) as boolean
+        let config: ModConfig
+        
         if (!configExists) {
-          console.warn(`模组 ${folder} 缺少 mod.json 文件`)
-          return null
+          
+          config = {
+            id: folder,
+            name: `${folder} (非MikuMod模组)`,
+            version: '未知',
+            author: '未知',
+            description: '此模组文件夹未包含配置信息',
+            game: '',
+            installPath: '',
+            files: [],
+            dependencies: [],
+            conflicts: [],
+            installed: false,
+            enabled: false
+          }
+        } else {
+          const configContent = await invoke('read_file', { path: configPath }) as string
+          config = JSON.parse(configContent) as ModConfig
         }
         
-        // 读取配置文件
-        const configContent = await invoke('read_file', { path: configPath }) as string
-        const config = JSON.parse(configContent) as ModConfig
+        const allFiles = await invoke('get_all_files', { path: modPath }) as string[]
+        config.files = allFiles
+          .map(file => file.replace(modPath, '').replace(/^[/\\]/, ''))
+          .filter(file => file !== '_mikumodinfo.json')
         
-        // 检查模组文件夹是否存在
-        const modFilesPath = `${modPath}/mod`
-        const modFilesExists = await invoke('file_exists', { path: modFilesPath }) as boolean
-        if (!modFilesExists) {
-          console.warn(`模组 ${folder} 缺少 mod 文件夹`)
-          return null
+        if (config.game) {
+          const installedMods = installedModsMap.get(config.game)
+          config.installed = installedMods ? installedMods.has(folder) : false
         }
         
-        // 获取模组文件列表
-        const files = await invoke('get_all_files', { path: modFilesPath }) as string[]
-        config.files = files.map(file => file.replace(modFilesPath, '').replace(/^[/\\]/, ''))
-        
-        // 从 game_status.json 检查是否已安装
-        const installedMods = installedModsMap.get(config.game)
-        config.installed = installedMods ? installedMods.has(config.id) : false
-        
-        // 初始化 enabled 状态为 installed 状态
         config.enabled = config.installed
         
         return config
@@ -287,9 +295,7 @@ async function loadMods() {
 }
 
 // 处理模组勾选变化
-function onModToggle(mod: ModConfig) {
-  // 只改变 enabled 状态，不立即安装/卸载
-  console.log(`模组 ${mod.name} 状态变更为: ${mod.enabled ? '启用' : '禁用'}`)
+function onModToggle() {
 }
 
 // =========================
@@ -302,9 +308,6 @@ async function applyChanges() {
     // 获取需要安装和卸载的模组
     const modsToUninstall = mods.value.filter(m => m.installed && !m.enabled)
     const modsToInstall = mods.value.filter(m => !m.installed && m.enabled)
-    
-    console.log('需要卸载:', modsToUninstall.map(m => m.name))
-    console.log('需要安装:', modsToInstall.map(m => m.name))
     
     if (modsToUninstall.length === 0 && modsToInstall.length === 0) {
       alert('没有需要应用的更改')
@@ -378,7 +381,7 @@ async function installMod(mod: ModConfig) {
       replacedFiles: []
     }
     
-    const modFilesPath = `mod/${mod.id}/mod`
+    const modFilesPath = `mod/${mod.id}`
     
     // 检查与已安装模组的冲突
     const { hasConflict, conflictingMods, conflictingFiles } = await checkConflictWithInstalled(mod)
@@ -393,7 +396,6 @@ async function installMod(mod: ModConfig) {
       )
       
       if (!confirmed) {
-        console.log('用户取消安装')
         return
       }
     }
@@ -415,14 +417,10 @@ async function installMod(mod: ModConfig) {
         const backupExists = await invoke('file_exists', { path: backupPath }) as boolean
         
         if (!backupExists) {
-          // 第一次替换，备份游戏原文件
           const backupDirPath = backupPath.substring(0, backupPath.lastIndexOf('/'))
           await invoke('create_directory', { path: backupDirPath })
           await invoke('copy_file', { from: targetPath, to: backupPath })
           installLog.replacedFiles.push(normalizedTargetPath)
-          console.log(`备份游戏原文件: ${targetPath} -> ${backupPath}`)
-        } else {
-          console.log(`备份文件已存在，跳过备份: ${backupPath}`)
         }
       }
       
@@ -432,10 +430,9 @@ async function installMod(mod: ModConfig) {
         await invoke('create_directory', { path: targetDirPath })
       }
       
-      // 复制模组文件到目标位置
+      // 复制模组文件到目标位置      
       await invoke('copy_file', { from: sourcePath, to: targetPath })
       installLog.installedFiles.push(normalizedTargetPath)
-      console.log(`安装文件: ${sourcePath} -> ${targetPath}`)
     }
     
     // 保存安装日志
@@ -448,10 +445,7 @@ async function installMod(mod: ModConfig) {
     // 更新文件映射
     await updateFileMapping(mod.game, mod.id, mod.files.map(f => `${mod.installPath}/${f}`.replace(/\\/g, '/')), 'add')
     
-    // 更新 game_status.json
     await updateGameStatus(mod.game, mod.id, 'install')
-    
-    console.log(`模组 "${mod.name}" 安装成功`)
     
   } catch (error) {
     console.error('安装模组失败:', error)
@@ -485,7 +479,6 @@ async function uninstallMod(mod: ModConfig) {
       const fileExists = await invoke('file_exists', { path: filePath }) as boolean
       if (fileExists) {
         await invoke('delete_file', { path: filePath })
-        console.log(`删除文件: ${filePath}`)
       }
     }
     
@@ -498,7 +491,6 @@ async function uninstallMod(mod: ModConfig) {
       const backupExists = await invoke('file_exists', { path: backupPath }) as boolean
       if (backupExists) {
         await invoke('copy_file', { from: backupPath, to: filePath })
-        console.log(`恢复备份文件: ${backupPath} -> ${filePath}`)
       }
     }
     
@@ -508,10 +500,7 @@ async function uninstallMod(mod: ModConfig) {
     // 更新文件映射
     await updateFileMapping(mod.game, mod.id, installLog.installedFiles, 'remove')
     
-    // 更新 game_status.json
     await updateGameStatus(mod.game, mod.id, 'uninstall')
-    
-    console.log(`模组 "${mod.name}" 卸载成功`)
     
   } catch (error) {
     console.error('卸载模组失败:', error)
@@ -641,13 +630,10 @@ async function updateGameStatus(gameName: string, modId: string, action: 'instal
     
     gameStatus.last_updated = new Date().toISOString()
     
-    // 保存状态
     await invoke('write_file', {
       path: gameStatusPath,
       content: JSON.stringify(gameStatus, null, 2)
     })
-    
-    console.log(`已更新 game_status.json: ${action} ${modId}`)
     
   } catch (error) {
     console.error('更新游戏状态失败:', error)
@@ -935,6 +921,11 @@ async function showModSelectionDialog(
   flex-direction: column;
 }
 
+.panel-header {
+  background: linear-gradient(135deg, #e7f3ff 0%, #d4e7ff 100%);
+  border-bottom: 2px solid #5C7CFA;
+}
+
 .panel-header .actions {
   display: flex;
   gap: var(--space-3);
@@ -943,14 +934,16 @@ async function showModSelectionDialog(
 .panel-body {
   padding: var(--space-5);
   overflow-y: auto;
+  background: linear-gradient(to bottom, #f8fbff 0%, #ffffff 100%);
 }
 
 .empty-state {
   text-align: center;
   padding: var(--space-10);
   color: var(--text-muted);
-  background-color: var(--gray-50);
+  background: linear-gradient(135deg, #e7f3ff 0%, #d4e7ff 100%);
   border-radius: var(--radius-md);
+  border: 2px dashed #5C7CFA;
 }
 
 .mods-list {
@@ -967,11 +960,17 @@ async function showModSelectionDialog(
 }
 
 .mod-item.installed {
-  border-left: 4px solid var(--success-color);
+  border-left: 4px solid #5C7CFA;
+  background: linear-gradient(135deg, #e7f3ff 0%, #d4e7ff 100%);
 }
 
 .mod-item.conflict {
   border-left: 4px solid var(--error-color);
+}
+
+.mod-item.non-mikumod {
+  border-left: 4px solid var(--warning-color);
+  background: #fff9e6;
 }
 
 .mod-info {
@@ -1061,7 +1060,7 @@ async function showModSelectionDialog(
 }
 
 .toggle-switch input[type="checkbox"]:checked + .slider {
-  background-color: var(--success-color);
+  background: linear-gradient(135deg, #5C7CFA 0%, #4C6EF5 100%);
 }
 
 .toggle-switch input[type="checkbox"]:checked + .slider::before {
@@ -1072,6 +1071,20 @@ async function showModSelectionDialog(
   font-size: var(--font-sm);
   font-weight: var(--font-medium);
   color: var(--text-secondary);
+}
+
+.toggle-switch.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-switch.disabled .slider {
+  background-color: var(--gray-400);
+}
+
+.badge-warning {
+  background-color: var(--warning-color);
+  color: white;
 }
 
 /* 模态框样式 */

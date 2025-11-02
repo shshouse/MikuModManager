@@ -451,32 +451,40 @@ async function loadMods() {
     
     const modPromises = modFolders.map(async (folder: string) => {
       const modPath = `${modsDir}/${folder}`
-      const configPath = `${modPath}/mod.json`
+      const configPath = `${modPath}/_mikumodinfo.json`
       
       try {
         const configExists = await invoke('file_exists', { path: configPath }) as boolean
+        let config: ModConfig
+        
         if (!configExists) {
-          console.warn(`模组 ${folder} 缺少 mod.json 文件`)
-          return null
+          
+          config = {
+            id: folder,
+            name: `${folder} (非MikuMod模组)`,
+            version: '未知',
+            author: '未知',
+            description: '此模组文件夹未包含配置信息',
+            game: game.value?.name || '',
+            installPath: game.value?.directory || '',
+            files: [],
+            dependencies: [],
+            conflicts: [],
+            installed: false,
+            enabled: false
+          }
+        } else {
+          const configContent = await invoke('read_file', { path: configPath }) as string
+          config = JSON.parse(configContent) as ModConfig
+          config.id = folder
         }
         
-        const configContent = await invoke('read_file', { path: configPath }) as string
-        const config = JSON.parse(configContent) as ModConfig
+        const allFiles = await invoke('get_all_files', { path: modPath }) as string[]
+        config.files = allFiles
+          .map(file => file.replace(modPath, '').replace(/^[/\\]/, ''))
+          .filter(file => file !== '_mikumodinfo.json')
         
-        // 使用文件夹名作为模组ID（不再从mod.json读取）
-        config.id = folder
-        
-        const modFilesPath = `${modPath}/mod`
-        const modFilesExists = await invoke('file_exists', { path: modFilesPath }) as boolean
-        if (!modFilesExists) {
-          console.warn(`模组 ${folder} 缺少 mod 文件夹`)
-          return null
-        }
-        
-        const files = await invoke('get_all_files', { path: modFilesPath }) as string[]
-        config.files = files.map(file => file.replace(modFilesPath, '').replace(/^[/\\]/, ''))
-        
-        config.installed = installedMods.has(folder)  // 使用文件夹名检查
+        config.installed = installedMods.has(folder)
         config.enabled = config.installed
         
         return config
@@ -572,7 +580,7 @@ async function installModInternal(mod: ModConfig) {
       replacedFiles: []
     }
     
-    const modFilesPath = `${gameDir}/mods/${mod.id}/mod`
+    const modFilesPath = `${gameDir}/mods/${mod.id}`
     
     const { hasConflict, conflictingMods, conflictingFiles } = await checkConflictWithInstalled(mod)
     
@@ -1238,7 +1246,7 @@ async function showModSelectionDialog(
             <div v-if="mods.length === 0" class="empty-state">
               <p>暂无可用模组</p>
               <small>模组应放置在 game/{{ game.name }}/mods/ 目录下<br>
-              每个文件夹对应一个模组，结构：mods/{文件夹名}/mod.json + mods/{文件夹名}/mod/</small>
+              每个文件夹对应一个模组，结构：mods/{文件夹名}/_mikumodinfo.json + 模组文件</small>
             </div>
             <div v-else>
               <div class="mods-list">
@@ -1246,7 +1254,7 @@ async function showModSelectionDialog(
                   v-for="mod in mods" 
                   :key="mod.id"
                   class="mod-item"
-                  :class="{ enabled: mod.enabled }"
+                  :class="{ enabled: mod.enabled, 'non-mikumod': mod.name.includes('非MikuMod模组') }"
                 >
                   <div class="mod-info-section">
                     <div class="mod-header-row">
@@ -1255,6 +1263,7 @@ async function showModSelectionDialog(
                         <div class="mod-meta-badges">
                           <span class="badge badge-version">v{{ mod.version }}</span>
                           <span class="badge badge-author">{{ mod.author }}</span>
+                          <span v-if="mod.name.includes('非MikuMod模组')" class="badge badge-warning">非标准模组</span>
                   </div>
                 </div>
                       <label class="toggle-switch">
@@ -1917,6 +1926,20 @@ async function showModSelectionDialog(
   border-color: var(--success-color);
   background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
   box-shadow: 0 2px 12px rgba(76, 200, 100, 0.2);
+}
+
+.mod-item.non-mikumod {
+  border-left: 4px solid var(--warning-color);
+  background: #fff9e6;
+}
+
+.mod-item.non-mikumod.enabled {
+  background: linear-gradient(135deg, #fff9e6 0%, #ffe8a1 100%);
+}
+
+.badge-warning {
+  background: linear-gradient(135deg, #f59f00 0%, #f76707 100%);
+  color: white;
 }
 
 .mod-info-section {
