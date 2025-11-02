@@ -4,8 +4,8 @@ import { APP_VERSION } from '../../version'
 const appInfo = ref({
   name: 'Miku Mod Manager',
   version: APP_VERSION,
-  author: 'shshouse',
-  description: '简单的补丁管理工具，支持所有需要安装与回滚功能的场景',
+  author: '松灰酸 shshouse',
+  description: '开源的模组管理工具，支持快捷安装与卸载模组！附带模组冲突检测功能，完整的恢复回滚功能',
   buildDate: '2025-08-13',
   license: 'Apache 2.0 License',
   image: 'MikuMod'
@@ -13,7 +13,11 @@ const appInfo = ref({
 
 const links = [
   { name: 'GitHub仓库', url: 'https://github.com/shshouse/MikuModsManager' },
-  { name: '问题反馈', url: 'https://github.com/shshouse/MikuModsManager/issues' }
+  { name: '问题反馈', url: 'https://github.com/shshouse/MikuModsManager/issues' },
+  { name: '爱发电', url: 'https://afdian.com/a/shshouse' },
+  { name: 'Bilibili', url: 'https://space.bilibili.com/309820452' },
+  { name: 'MikuGame', url: 'https://www.mikugame.icu' },
+  { name: 'MikuMod', url: 'https://www.mikumod.com' }
 ]
 
 function openLink(url: string) {
