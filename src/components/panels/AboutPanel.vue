@@ -6,8 +6,8 @@ const appInfo = ref({
   version: APP_VERSION,
   author: '松灰酸 shshouse',
   description: '开源的模组管理工具，支持快捷安装与卸载模组！附带模组冲突检测功能，完整的恢复回滚功能',
-  buildDate: '2025-08-13',
-  license: 'Apache 2.0 License',
+  buildDate: '2025-11-4',
+  license: 'GPL-3.0 license',
   image: 'MikuMod'
 })
 
