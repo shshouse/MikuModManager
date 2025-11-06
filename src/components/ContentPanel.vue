@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import ModsPanel from './panels/ModsPanel.vue'
-import GameDetailPanel from './panels/GameDetailPanel.vue'
+import ModsPanel from './panels/game-management/ModsPanel.vue'
+import GameDetailPanel from './panels/game-management/GameDetailPanel.vue'
 import FindModsPanel from './panels/FindModsPanel.vue'
 import DownloadPanel from './panels/DownloadPanel.vue'
 import AboutPanel from './panels/AboutPanel.vue'
