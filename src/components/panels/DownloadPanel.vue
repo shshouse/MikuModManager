@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { NCard, NButton, NSpace } from 'naive-ui'
 
 const websiteUrl = 'https://www.mikugame.icu'
 const isOpening = ref(false)
@@ -8,11 +9,9 @@ const isOpening = ref(false)
 async function openInBrowser() {
   try {
     isOpening.value = true
-    // 使用Tauri的Webview API打开默认浏览器
     await invoke('open_url_in_browser', { url: websiteUrl })
   } catch (error) {
     console.error('Failed to open browser:', error)
-    // 如果Tauri方法失败，可以尝试其他方式
   } finally {
     isOpening.value = false
   }
@@ -20,35 +19,35 @@ async function openInBrowser() {
 </script>
 
 <template>
-  <div class="download-panel panel">
+  <div class="download-panel">
     <div class="panel-header">
       <h2>找游戏</h2>
     </div>
     
     <div class="panel-body">
-      <div class="card browser-container">
-        <div class="card-body browser-content">
+      <NCard size="large" class="browser-card" hoverable>
+        <NSpace vertical align="center" :size="24">
           <div class="browser-icon">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="var(--primary-color)" stroke-width="2"/>
-              <path d="M8 12H16" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M12 8V16" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#5DADE2" stroke-width="2"/>
+              <path d="M8 12H16" stroke="#5DADE2" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 8V16" stroke="#5DADE2" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
           
           <div class="browser-text">
             <h3>MikuGame初音游戏库持续更新中，遇到问题可以直接进群反馈</h3>
             <p>将在您的默认浏览器中打开，提供各类Steam游戏，Galgame下载</p>
-            <p class="website-url">{{ websiteUrl }}</p>
+            <NCard size="small" embedded style="margin-top: 12px; text-align: center">
+              <span style="color: #5DADE2; font-weight: 500">{{ websiteUrl }}</span>
+            </NCard>
           </div>
           
-          <div class="browser-actions">
-            <button @click="openInBrowser" :disabled="isOpening" class="btn btn-primary">
-              {{ isOpening ? '正在打开...' : '进入MikuGame' }}
-            </button>
-          </div>
-        </div>
-      </div>
+          <NButton type="primary" size="large" :loading="isOpening" @click="openInBrowser">
+            {{ isOpening ? '正在打开...' : '进入MikuGame' }}
+          </NButton>
+        </NSpace>
+      </NCard>
     </div>
   </div>
 </template>
@@ -57,6 +56,24 @@ async function openInBrowser() {
 .download-panel {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  background: #f5f5f5;
+}
+
+.panel-header {
+  padding: 24px;
+  border-bottom: 1px solid #e8e8e8;
+  background: linear-gradient(135deg, #EBF5FB 0%, #ffffff 100%);
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #5DADE2, #3498DB);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .panel-body {
@@ -64,70 +81,36 @@ async function openInBrowser() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-6);
+  padding: 24px;
 }
 
-.browser-container {
+.browser-card {
+  max-width: 600px;
   width: 100%;
-  max-width: 800px;
-}
-
-.browser-content {
-  text-align: center;
 }
 
 .browser-icon {
-  margin-bottom: var(--space-6);
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+.browser-text {
+  text-align: center;
+  width: 100%;
+}
+
 .browser-text h3 {
-  color: var(--text-primary);
-  margin-bottom: var(--space-3);
-  font-size: var(--font-xl);
-  font-weight: var(--font-semibold);
-  line-height: 1.4;
+  color: #2c3e50;
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .browser-text p {
-  color: var(--text-secondary);
-  margin-bottom: var(--space-2);
-  font-size: var(--font-sm);
+  color: #7f8c8d;
+  margin: 0;
+  font-size: 14px;
   line-height: 1.6;
-}
-
-.website-url {
-  color: var(--primary-color);
-  font-weight: var(--font-medium);
-  word-break: break-all;
-  font-size: var(--font-sm);
-  margin-top: var(--space-4);
-  padding: var(--space-2) var(--space-3);
-  background-color: var(--gray-50);
-  border-radius: var(--radius-base);
-  border: 1px solid var(--border-color);
-  display: inline-block;
-}
-
-.browser-actions {
-  margin-top: var(--space-6);
-}
-
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .panel-body {
-    padding: var(--space-4);
-  }
-  
-  .browser-icon svg {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .browser-text h3 {
-    font-size: var(--font-lg);
-  }
 }
 </style>
