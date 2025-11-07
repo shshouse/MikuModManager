@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { APP_VERSION } from '../../version'
+import { NCard, NButton, NSpace, NTag, NGrid, NGridItem } from 'naive-ui'
+
 const appInfo = ref({
   name: 'Miku Mod Manager',
   version: APP_VERSION,
@@ -30,71 +32,78 @@ function openLink(url: string) {
 </script>
 
 <template>
-  <div class="about-panel panel">
+  <div class="about-panel">
     <div class="panel-header">
       <h2>关于</h2>
     </div>
     
     <div class="panel-body">
       <div class="about-content">
-        <div class="card app-info-card">
-          <div class="card-body">
+        <NCard size="large" :bordered="true">
+          <NSpace align="start" :size="24">
             <div class="app-icon">
               <img src="/Miku.png" alt="Miku Mod Manager" />
             </div>
             <div class="app-details">
               <h2>{{ appInfo.name }}</h2>
-              <p class="version badge badge-secondary">版本 {{ appInfo.version }}</p>
+              <NTag type="info" size="medium" style="margin: 8px 0 16px 0">
+                版本 {{ appInfo.version }}
+              </NTag>
               <p class="description">{{ appInfo.description }}</p>
               
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="label">开发者:</span>
-                  <span class="value">{{ appInfo.author }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">构建日期:</span>
-                  <span class="value">{{ appInfo.buildDate }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">许可证:</span>
-                  <span class="value">{{ appInfo.license }}</span>
-                </div> 
-                <div class="info-item">
-                  <span class="label">图标来自:</span>
-                  <span class="value">なの</span>
-                </div>
-              </div>
+              <NGrid :x-gap="12" :y-gap="12" :cols="2" style="margin-top: 16px">
+                <NGridItem>
+                  <NCard size="small" embedded>
+                    <div class="info-item">
+                      <span class="label">开发者</span>
+                      <span class="value">{{ appInfo.author }}</span>
+                    </div>
+                  </NCard>
+                </NGridItem>
+                <NGridItem>
+                  <NCard size="small" embedded>
+                    <div class="info-item">
+                      <span class="label">构建日期</span>
+                      <span class="value">{{ appInfo.buildDate }}</span>
+                    </div>
+                  </NCard>
+                </NGridItem>
+                <NGridItem>
+                  <NCard size="small" embedded>
+                    <div class="info-item">
+                      <span class="label">许可证</span>
+                      <span class="value">{{ appInfo.license }}</span>
+                    </div>
+                  </NCard>
+                </NGridItem>
+                <NGridItem>
+                  <NCard size="small" embedded>
+                    <div class="info-item">
+                      <span class="label">图标来自</span>
+                      <span class="value">なの</span>
+                    </div>
+                  </NCard>
+                </NGridItem>
+              </NGrid>
             </div>
-          </div>
-        </div>
+          </NSpace>
+        </NCard>
 
-        <div class="card links-section">
-          <div class="card-header">
-            <h3>相关链接</h3>
-          </div>
-          <div class="card-body">
-            <div class="links-grid">
-              <button 
-                v-for="link in links" 
-                :key="link.name"
-                @click="openLink(link.url)"
-                class="btn btn-outline"
-              >
+        <NCard size="large" title="相关链接" :bordered="true">
+          <NGrid :x-gap="12" :y-gap="12" :cols="2">
+            <NGridItem v-for="link in links" :key="link.name">
+              <NButton block @click="openLink(link.url)">
                 {{ link.name }}
-              </button>
-            </div>
-          </div>
-        </div>
+              </NButton>
+            </NGridItem>
+          </NGrid>
+        </NCard>
 
-        <div class="card credits-section">
-           <div class="card-header">
-            <h3>致谢</h3>
-          </div>
-          <div class="card-body">
-            <p>特别感谢开源社区提供的优秀工具和库。</p>
-          </div>
-        </div>
+        <NCard size="large" title="致谢" :bordered="true">
+          <p style="color: #7f8c8d; line-height: 1.6; margin: 0">
+            特别感谢开源社区提供的优秀工具和库。
+          </p>
+        </NCard>
 
         <div class="copyright">
           <p>&copy; 2025 shshouse. All rights reserved.</p>
@@ -108,13 +117,31 @@ function openLink(url: string) {
 .about-panel {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  background: #f5f5f5;
+}
+
+.panel-header {
+  padding: 24px;
+  border-bottom: 1px solid #e8e8e8;
+  background: linear-gradient(135deg, #EBF5FB 0%, #ffffff 100%);
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #5DADE2, #3498DB);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .panel-body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: var(--space-6);
+  padding: 24px;
   overflow-y: auto;
 }
 
@@ -123,13 +150,7 @@ function openLink(url: string) {
   max-width: 900px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-}
-
-.app-info-card .card-body {
-  display: flex;
-  gap: var(--space-6);
-  align-items: flex-start;
+  gap: 24px;
 }
 
 .app-icon {
@@ -142,105 +163,66 @@ function openLink(url: string) {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
+}
+
+.app-details {
+  flex: 1;
 }
 
 .app-details h2 {
-  margin: 0 0 var(--space-2) 0;
-  color: var(--text-primary);
-  font-size: var(--font-2xl);
-  font-weight: var(--font-bold);
-}
-
-.version {
-  margin: 0 0 var(--space-4) 0;
+  margin: 0;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 700;
 }
 
 .description {
-  color: var(--text-secondary);
+  color: #7f8c8d;
   line-height: 1.6;
-  margin-bottom: var(--space-5);
-  font-size: var(--font-base);
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-3);
+  margin: 0;
+  font-size: 14px;
 }
 
 .info-item {
   display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  background-color: var(--gray-50);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-base);
+  flex-direction: column;
+  gap: 4px;
 }
 
 .label {
-  color: var(--text-muted);
-  font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  color: #7f8c8d;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .value {
-  color: var(--text-primary);
-  font-size: var(--font-sm);
-  font-weight: var(--font-semibold);
-}
-
-.links-section h3, .credits-section h3 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--font-lg);
-  font-weight: var(--font-semibold);
-}
-
-.links-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
-}
-
-.credits-section p {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0;
-  font-size: var(--font-base);
+  color: #2c3e50;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .copyright {
   text-align: center;
-  color: var(--text-muted);
-  font-size: var(--font-xs);
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--border-color);
+  color: #95a5a6;
+  font-size: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
 }
 
-/* 响应式布局 */
 @media (max-width: 768px) {
   .panel-body {
-    padding: var(--space-4);
+    padding: 16px;
   }
   
-  .app-info-card .card-body {
+  :deep(.n-space) {
     flex-direction: column;
     align-items: center;
+  }
+  
+  .app-details {
     text-align: center;
-  }
-  
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .info-item {
-    justify-content: center;
-  }
-
-  .links-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>

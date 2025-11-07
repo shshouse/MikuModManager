@@ -2,17 +2,34 @@
 import { ref } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import ContentPanel from './components/ContentPanel.vue'
-import { NMessageProvider, NConfigProvider } from 'naive-ui'
+import { NMessageProvider, NConfigProvider, GlobalThemeOverrides } from 'naive-ui'
 
 const activeTab = ref('mods')
 
 function handleTabChange(tab: string) {
   activeTab.value = tab
 }
+
+const themeOverrides: GlobalThemeOverrides = {
+  common: {
+    primaryColor: '#5DADE2',
+    primaryColorHover: '#3498DB',
+    primaryColorPressed: '#2E86C1',
+    primaryColorSuppl: '#AED6F1',
+  },
+  Button: {
+    colorPrimary: '#5DADE2',
+    colorHoverPrimary: '#3498DB',
+    colorPressedPrimary: '#2E86C1',
+  },
+  Card: {
+    borderRadius: '12px',
+  },
+}
 </script>
 
 <template>
-  <NConfigProvider>
+  <NConfigProvider :theme-overrides="themeOverrides">
     <NMessageProvider>
       <div class="app-container">
         <Sidebar 
