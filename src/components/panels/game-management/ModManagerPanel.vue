@@ -6,6 +6,7 @@
         <button @click="applyChanges" class="btn btn-success" :disabled="!hasChanges || isApplying">
           {{ isApplying ? '应用中...' : '应用更改' }}
         </button>
+        <button @click="importMod" class="btn btn-primary">导入模组</button>
         <button @click="refreshMods" class="btn btn-primary">刷新模组列表</button>
         <button @click="openModDirectory" class="btn btn-secondary">打开模组目录</button>
       </div>
@@ -146,6 +147,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { open } from '@tauri-apps/plugin-dialog'
 
 // 模组配置接口
 interface ModConfig {
@@ -317,7 +319,13 @@ async function applyChanges() {
     // 步骤1: 先执行所有卸载
     if (modsToUninstall.length > 0) {
       for (const mod of modsToUninstall) {
-        await uninstallMod(mod)
+        try {
+          await uninstallMod(mod)
+        } catch (error) {
+          console.error(`卸载模组 ${mod.name} 失败:`, error)
+          mod.enabled = mod.installed
+          throw error
+        }
       }
     }
     
@@ -328,22 +336,55 @@ async function applyChanges() {
         // 显示冲突选择对话框
         const selectedMod = await showModSelectionDialog(conflictResult.conflictingMods, conflictResult.conflictingFiles)
         if (!selectedMod) {
+          // 用户选择都不安装，重置所有冲突模组的enabled状态
+          conflictResult.conflictingMods.forEach(mod => {
+            mod.enabled = mod.installed
+          })
           alert('安装已取消')
           isApplying.value = false
           return
         }
         
-        // 只安装用户选择的模组
-        await installMod(selectedMod)
+        // 只安装用户选择的模组，其他冲突模组重置状态
+        conflictResult.conflictingMods.forEach(mod => {
+          if (mod.id !== selectedMod.id) {
+            mod.enabled = mod.installed
+          }
+        })
+        
+        try {
+          await installMod(selectedMod)
+        } catch (error) {
+          console.error(`安装模组 ${selectedMod.name} 失败:`, error)
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          if (errorMessage !== '用户取消安装') {
+            selectedMod.enabled = selectedMod.installed
+          }
+          throw error
+        }
       } else {
         // 无冲突，逐个安装
         for (const mod of modsToInstall) {
-          await installMod(mod)
+          try {
+            await installMod(mod)
+          } catch (error) {
+            console.error(`安装模组 ${mod.name} 失败:`, error)
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            if (errorMessage !== '用户取消安装') {
+              mod.enabled = mod.installed
+            }
+            throw error
+          }
         }
       }
     } else if (modsToInstall.length === 1) {
-      // 只有一个模组要安装
-      await installMod(modsToInstall[0])
+      try {
+        await installMod(modsToInstall[0])
+      } catch (error) {
+        console.error(`安装模组 ${modsToInstall[0].name} 失败:`, error)
+        modsToInstall[0].enabled = modsToInstall[0].installed
+        throw error
+      }
     }
     
     // 刷新模组列表
@@ -353,7 +394,11 @@ async function applyChanges() {
     
   } catch (error) {
     console.error('应用更改失败:', error)
-    alert(`应用更改失败: ${error}`)
+    await loadMods()
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage !== '用户取消安装') {
+      alert(`应用更改失败: ${errorMessage}`)
+    }
   } finally {
     isApplying.value = false
   }
@@ -396,7 +441,8 @@ async function installMod(mod: ModConfig) {
       )
       
       if (!confirmed) {
-        return
+        mod.enabled = mod.installed
+        throw new Error('用户取消安装')
       }
     }
     
@@ -531,6 +577,37 @@ async function openModDirectory() {
   } catch (error) {
     console.error('打开模组目录失败:', error)
     alert('打开模组目录失败，请确保 mod 目录存在')
+  }
+}
+
+async function importMod() {
+  try {
+    const selected = await open({
+      multiple: false,
+      directory: true,
+      title: '选择要导入的模组文件夹'
+    })
+    
+    if (selected) {
+      const sourcePath = selected as string
+      const modFolderName = sourcePath.split(/[/\\]/).pop() || 'mod'
+      const targetPath = `mod/${modFolderName}`
+      
+      const targetExists = await invoke('file_exists', { path: targetPath }) as boolean
+      if (targetExists) {
+        if (!confirm(`模组文件夹 "${modFolderName}" 已存在，是否覆盖？`)) {
+          return
+        }
+      }
+      
+      await invoke('copy_directory', { from: sourcePath, to: targetPath })
+      
+      await loadMods()
+      alert(`模组 "${modFolderName}" 导入成功！`)
+    }
+  } catch (error) {
+    console.error('导入模组失败:', error)
+    alert('导入模组失败：' + error)
   }
 }
 
@@ -745,7 +822,7 @@ async function showModSelectionDialog(
     dialog.innerHTML = `
       <div class="conflict-dialog">
         <div class="conflict-dialog-header">
-          <h3>⚠️ 模组冲突检测</h3>
+          <h3>模组冲突检测</h3>
         </div>
         <div class="conflict-dialog-body">
           <p>以下模组存在文件冲突，请选择要安装的模组：</p>

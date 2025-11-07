@@ -882,7 +882,7 @@ async function showModSelectionDialog(
     dialog.innerHTML = `
       <div class="conflict-dialog">
         <div class="conflict-dialog-header">
-          <h3>⚠️ 模组冲突检测</h3>
+          <h3>模组冲突检测</h3>
         </div>
         <div class="conflict-dialog-body">
           <p>以下模组存在文件冲突，请选择要安装的模组：</p>
@@ -1020,6 +1020,51 @@ async function showModSelectionDialog(
       resolve(null)
     })
   })
+}
+
+async function importMod() {
+  if (!game.value) return
+  
+  try {
+    const selected = await open({
+      multiple: false,
+      directory: true,
+      title: '选择要导入的模组文件夹'
+    })
+    
+    if (selected) {
+      const sourcePath = selected as string
+      const modFolderName = sourcePath.split(/[/\\]/).pop() || 'mod'
+      const targetPath = `${appDirectory.value}/game/${game.value.name}/mods/${modFolderName}`
+      
+      const targetExists = await invoke('file_exists', { path: targetPath }) as boolean
+      if (targetExists) {
+        if (!confirm(`模组文件夹 "${modFolderName}" 已存在，是否覆盖？`)) {
+          return
+        }
+      }
+      
+      await invoke('copy_directory', { from: sourcePath, to: targetPath })
+      
+      await loadMods()
+      alert(`模组 "${modFolderName}" 导入成功！`)
+    }
+  } catch (error) {
+    console.error('导入模组失败:', error)
+    alert('导入模组失败：' + error)
+  }
+}
+
+async function openModsFolder() {
+  if (!game.value) return
+  
+  try {
+    const modsPath = `${appDirectory.value}/game/${game.value.name}/mods`
+    await invoke('open_directory', { path: modsPath })
+  } catch (error) {
+    console.error('打开模组文件夹失败:', error)
+    alert('打开模组文件夹失败：' + error)
+  }
 }
 </script>
 
@@ -1243,15 +1288,29 @@ async function showModSelectionDialog(
         <!-- 模组管理模块 -->
         <NCard title="模组管理" size="large" class="content-card">
           <template #header-extra>
-            <NButton 
-              type="success"
-              size="small"
-              :disabled="!hasModChanges || isApplyingMods"
-              :loading="isApplyingMods"
-              @click="applyModChanges"
-            >
-              {{ isApplyingMods ? '应用中...' : '应用更改' }}
-            </NButton>
+            <NSpace>
+              <NButton 
+                size="small"
+                @click="importMod"
+              >
+                导入模组
+              </NButton>
+              <NButton 
+                size="small"
+                @click="openModsFolder"
+              >
+                打开模组文件夹
+              </NButton>
+              <NButton 
+                type="success"
+                size="small"
+                :disabled="!hasModChanges || isApplyingMods"
+                :loading="isApplyingMods"
+                @click="applyModChanges"
+              >
+                {{ isApplyingMods ? '应用中...' : '应用更改' }}
+              </NButton>
+            </NSpace>
           </template>
             <NEmpty v-if="mods.length === 0" description="暂无可用模组" size="large">
               <template #extra>

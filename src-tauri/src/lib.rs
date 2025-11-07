@@ -132,6 +132,49 @@ fn delete_directory(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn copy_directory(from: String, to: String) -> Result<(), String> {
+    let source = Path::new(&from);
+    let destination = Path::new(&to);
+    
+    if !source.exists() {
+        return Err(format!("源目录不存在: {}", from));
+    }
+    
+    if !source.is_dir() {
+        return Err(format!("源路径不是目录: {}", from));
+    }
+    
+    copy_dir_recursive(source, destination)?;
+    
+    Ok(())
+}
+
+fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)
+            .map_err(|e| format!("创建目标目录失败: {}", e))?;
+    }
+    
+    for entry in fs::read_dir(src)
+        .map_err(|e| format!("读取源目录失败: {}", e))? 
+    {
+        let entry = entry.map_err(|e| format!("读取目录条目失败: {}", e))?;
+        let path = entry.path();
+        let file_name = entry.file_name();
+        let dst_path = dst.join(&file_name);
+        
+        if path.is_dir() {
+            copy_dir_recursive(&path, &dst_path)?;
+        } else {
+            fs::copy(&path, &dst_path)
+                .map_err(|e| format!("复制文件失败: {}", e))?;
+        }
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
 fn write_file(path: String, content: String) -> Result<(), String> {
     // Create parent directory if it doesn't exist
     if let Some(parent) = Path::new(&path).parent() {
@@ -551,6 +594,7 @@ pub fn run() {
             copy_file,
             delete_file,
             delete_directory,
+            copy_directory,
             write_file,
             read_file,
             open_directory,
