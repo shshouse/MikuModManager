@@ -2,8 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
-import { searchGames, fetchGameById } from '../../utils/supabase'
-import type { MikuGameListItem } from '../../types/mikugame'
+import { searchGames, fetchGameById } from '../../../utils/supabase'
+import type { MikuGameListItem } from '../../../types/mikugame'
 
 interface CustomGame {
   id: string
