@@ -4,6 +4,15 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 import { searchGames, fetchGameById } from '../../../utils/supabase'
 import type { MikuGameListItem } from '../../../types/mikugame'
+import {
+  NCard,
+  NButton,
+  NInput,
+  NSpace,
+  NTag,
+  NSwitch,
+  NEmpty
+} from 'naive-ui'
 
 interface CustomGame {
   id: string
@@ -1029,28 +1038,30 @@ async function showModSelectionDialog(
             <div class="hero-game-info">
               <h1 class="hero-title">{{ game?.name || '游戏详情' }}</h1>
               <div v-if="game" class="hero-actions">
-                <button 
-                  @click="launchGame" 
-                  :disabled="isLoading"
+                <NButton 
+                  type="primary"
+                  size="large"
+                  :loading="isLoading"
+                  @click="launchGame"
                   class="btn-hero-launch"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
-                  </svg>
-                  <span v-if="isLoading">启动中...</span>
-                  <span v-else">开始游戏</span>
-                </button>
+                  <template #icon>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+                    </svg>
+                  </template>
+                  {{ isLoading ? '启动中...' : '开始游戏' }}
+                </NButton>
               </div>
             </div>
           </div>
         </div>
 
         <!-- 游戏详情模块 -->
-        <div class="card">
-          <div class="card-header">
-            <h3>游戏详情</h3>
-          </div>
-          <div class="card-body">
+        <NCard title="游戏详情" size="large" class="content-card">
+          <template #header-extra>
+            <NTag type="info" size="small">游戏信息</NTag>
+          </template>
             <div class="info-row">
               <label>游戏名称:</label>
               <span>{{ game.name }}</span>
@@ -1059,30 +1070,31 @@ async function showModSelectionDialog(
               <label>游戏路径:</label>
               <div v-if="!isEditingDirectory" class="directory-display">
                 <span class="directory-path">{{ game.directory }}</span>
-                <button class="btn btn-secondary btn-sm" @click="isEditingDirectory = true">
+                <NButton size="small" @click="isEditingDirectory = true">
                   修改
-                </button>
+                </NButton>
               </div>
               <div v-else class="directory-edit">
-                <div class="directory-input">
-                  <input 
-                    v-model="newGameDirectory" 
-                    type="text" 
-                    class="form-input"
-                    placeholder="游戏目录路径..."
-                  >
-                  <button @click="selectNewDirectory" class="btn btn-primary">
-                    浏览
-                  </button>
-                </div>
-                <div class="edit-actions">
-                  <button @click="saveGameDirectory" class="btn btn-success">
-                    保存
-                  </button>
-                  <button @click="cancelEditDirectory" class="btn btn-error">
-                    取消
-                  </button>
-                </div>
+                <NSpace vertical style="width: 100%">
+                  <NSpace style="width: 100%">
+                    <NInput 
+                      v-model:value="newGameDirectory"
+                      placeholder="游戏目录路径..."
+                      style="flex: 1"
+                    />
+                    <NButton type="primary" @click="selectNewDirectory">
+                      浏览
+                    </NButton>
+                  </NSpace>
+                  <NSpace>
+                    <NButton type="success" @click="saveGameDirectory">
+                      保存
+                    </NButton>
+                    <NButton @click="cancelEditDirectory">
+                      取消
+                    </NButton>
+                  </NSpace>
+                </NSpace>
               </div>
             </div>
             
@@ -1100,14 +1112,14 @@ async function showModSelectionDialog(
                   <span class="binding-type">{{ game.mikuGameType }}</span>
                 </div>
                 <span v-else class="binding-empty">(未绑定)</span>
-                <div class="binding-actions">
-                  <button class="btn btn-secondary btn-sm" @click="startEditBinding">
+                <NSpace>
+                  <NButton size="small" @click="startEditBinding">
                     {{ game.mikuGameId ? '修改绑定' : '绑定游戏' }}
-                  </button>
-                  <button v-if="game.mikuGameId" class="btn btn-error btn-sm" @click="unbindMikuGame">
+                  </NButton>
+                  <NButton v-if="game.mikuGameId" type="error" size="small" @click="unbindMikuGame">
                     解除绑定
-                  </button>
-                </div>
+                  </NButton>
+                </NSpace>
               </div>
               <div v-else class="binding-edit">
                 <!-- 已选择的游戏显示 -->
@@ -1196,95 +1208,88 @@ async function showModSelectionDialog(
               <label>启动选项:</label>
               <div v-if="!isEditingLaunchOptions" class="launch-options-display">
                 <span class="launch-options-text">{{ launchOptions || '(未设置)' }}</span>
-                <button class="btn btn-secondary btn-sm" @click="isEditingLaunchOptions = true">
+                <NButton size="small" @click="isEditingLaunchOptions = true">
                   修改
-                </button>
+                </NButton>
               </div>
               <div v-else class="launch-options-edit">
-                <div class="launch-options-input">
-                  <input 
-                    v-model="launchOptions" 
-                    type="text" 
-                    class="form-input"
-                    placeholder="输入启动选项..."
-                  >
-                  <button @click="resetToDefaultLaunchOptions" class="btn btn-warning">
-                    重置默认
-                  </button>
-                </div>
-                <div class="edit-actions">
-                  <button @click="saveLaunchOptions" class="btn btn-success">
-                    保存
-                  </button>
-                  <button @click="cancelEditLaunchOptions" class="btn btn-error">
-                    取消
-                  </button>
-                </div>
-                <div class="launch-options-help">
-                  <small>输入游戏启动时需要的命令行参数</small>
-                </div>
+                <NSpace vertical style="width: 100%">
+                  <NSpace style="width: 100%">
+                    <NInput 
+                      v-model:value="launchOptions"
+                      placeholder="输入启动选项..."
+                      style="flex: 1"
+                    />
+                    <NButton type="warning" @click="resetToDefaultLaunchOptions">
+                      重置默认
+                    </NButton>
+                  </NSpace>
+                  <NSpace>
+                    <NButton type="success" @click="saveLaunchOptions">
+                      保存
+                    </NButton>
+                    <NButton @click="cancelEditLaunchOptions">
+                      取消
+                    </NButton>
+                  </NSpace>
+                  <div class="launch-options-help">
+                    <small>输入游戏启动时需要的命令行参数</small>
+                  </div>
+                </NSpace>
               </div>
             </div>
-          </div>
-        </div>
+        </NCard>
 
         <!-- 模组管理模块 -->
-        <div class="card">
-          <div class="card-header">
-            <h3>模组管理</h3>
-            <div class="header-actions">
-              <button 
-                @click="applyModChanges"
-                :disabled="!hasModChanges || isApplyingMods"
-                class="btn btn-success btn-sm"
+        <NCard title="模组管理" size="large" class="content-card">
+          <template #header-extra>
+            <NButton 
+              type="success"
+              size="small"
+              :disabled="!hasModChanges || isApplyingMods"
+              :loading="isApplyingMods"
+              @click="applyModChanges"
+            >
+              {{ isApplyingMods ? '应用中...' : '应用更改' }}
+            </NButton>
+          </template>
+            <NEmpty v-if="mods.length === 0" description="暂无可用模组" size="large">
+              <template #extra>
+                <p style="font-size: 12px; color: #999; margin-top: 12px">
+                  模组应放置在 game/{{ game.name }}/mods/ 目录下<br>
+                  每个文件夹对应一个模组，结构：mods/{文件夹名}/_mikumodinfo.json + 模组文件
+                </p>
+              </template>
+            </NEmpty>
+            <NSpace v-else vertical :size="12">
+              <NCard 
+                v-for="mod in mods" 
+                :key="mod.id"
+                size="small"
+                hoverable
+                :class="{ 'mod-enabled': mod.enabled, 'mod-non-mikumod': mod.name.includes('非MikuMod模组') }"
               >
-                {{ isApplyingMods ? '应用中...' : '应用更改' }}
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            <div v-if="mods.length === 0" class="empty-state">
-              <p>暂无可用模组</p>
-              <small>模组应放置在 game/{{ game.name }}/mods/ 目录下<br>
-              每个文件夹对应一个模组，结构：mods/{文件夹名}/_mikumodinfo.json + 模组文件</small>
-            </div>
-            <div v-else>
-              <div class="mods-list">
-                <div 
-                  v-for="mod in mods" 
-                  :key="mod.id"
-                  class="mod-item"
-                  :class="{ enabled: mod.enabled, 'non-mikumod': mod.name.includes('非MikuMod模组') }"
-                >
-                  <div class="mod-info-section">
-                    <div class="mod-header-row">
-                      <div class="mod-title-group">
-                        <h4 class="mod-name">{{ mod.name }}</h4>
-                        <div class="mod-meta-badges">
-                          <span class="badge badge-version">v{{ mod.version }}</span>
-                          <span class="badge badge-author">{{ mod.author }}</span>
-                          <span v-if="mod.name.includes('非MikuMod模组')" class="badge badge-warning">非标准模组</span>
-                  </div>
-                </div>
-                      <label class="toggle-switch">
-                  <input 
-                          type="checkbox" 
-                          v-model="mod.enabled"
-                        >
-                        <span class="slider"></span>
-                        <span class="toggle-label">{{ mod.enabled ? '已启用' : '未启用' }}</span>
-                      </label>
+                <NSpace justify="space-between" align="center">
+                  <div style="flex: 1">
+                    <NSpace align="center" style="margin-bottom: 8px">
+                      <h4 style="margin: 0; font-size: 16px; font-weight: 600">{{ mod.name }}</h4>
+                      <NTag type="info" size="small">v{{ mod.version }}</NTag>
+                      <NTag size="small">{{ mod.author }}</NTag>
+                      <NTag v-if="mod.name.includes('非MikuMod模组')" type="warning" size="small">非标准模组</NTag>
+                    </NSpace>
+                    <p style="margin: 8px 0; color: #666; font-size: 14px">{{ mod.description }}</p>
+                    <div v-if="mod.installDate" style="font-size: 12px; color: #999; margin-top: 4px">
+                      安装时间: {{ new Date(mod.installDate).toLocaleString('zh-CN') }}
                     </div>
-                    <p class="mod-description">{{ mod.description }}</p>
-                    <div v-if="mod.installDate" class="mod-install-date">
-                      📅 安装时间: {{ new Date(mod.installDate).toLocaleString('zh-CN') }}
                   </div>
-                </div>
-              </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                  <NSpace align="center" :size="8">
+                    <span style="font-size: 14px; color: #666">{{ mod.enabled ? '已启用' : '未启用' }}</span>
+                    <NSwitch v-model:value="mod.enabled" />
+                  </NSpace>
+                </NSpace>
+              </NCard>
+            </NSpace>
+        </NCard>
       </div>
     </div>
   </div>
@@ -1296,6 +1301,13 @@ async function showModSelectionDialog(
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background: #f5f5f5;
+}
+
+.content-card {
+  max-width: 1200px;
+  width: calc(100% - 48px);
+  margin: 0 auto 24px;
 }
 
 /* Steam风格背景横幅 */
@@ -1351,30 +1363,14 @@ async function showModSelectionDialog(
 }
 
 .btn-hero-launch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-6);
-  background: linear-gradient(135deg, #5C7CFA 0%, #4C6EF5 100%);
-  color: white;
-  border: none;
-  border-radius: var(--radius-base);
-  font-size: var(--font-lg);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(76, 110, 245, 0.4);
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(93, 173, 226, 0.4) !important;
 }
 
-.btn-hero-launch:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4C6EF5 0%, #3B5BDB 100%);
+.btn-hero-launch:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(76, 110, 245, 0.5);
-}
-
-.btn-hero-launch:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  box-shadow: 0 6px 16px rgba(93, 173, 226, 0.5) !important;
 }
 
 .panel-body {
