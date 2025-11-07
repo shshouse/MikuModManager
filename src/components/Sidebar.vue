@@ -50,6 +50,8 @@ function selectTab(tabId: string) {
 <style scoped>
 .sidebar {
   width: 240px;
+  min-width: 240px;
+  flex-shrink: 0;
   background-color: #2c3e50;
   color: white;
   display: flex;

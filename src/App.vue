@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import ContentPanel from './components/ContentPanel.vue'
+import { NMessageProvider, NConfigProvider } from 'naive-ui'
 
 const activeTab = ref('mods')
 
@@ -11,13 +12,17 @@ function handleTabChange(tab: string) {
 </script>
 
 <template>
-  <div class="app-container">
-    <Sidebar 
-      :active-tab="activeTab" 
-      @tab-change="handleTabChange" 
-    />
-    <ContentPanel :active-tab="activeTab" @tab-change="handleTabChange" />
-  </div>
+  <NConfigProvider>
+    <NMessageProvider>
+      <div class="app-container">
+        <Sidebar 
+          :active-tab="activeTab" 
+          @tab-change="handleTabChange" 
+        />
+        <ContentPanel :active-tab="activeTab" @tab-change="handleTabChange" />
+      </div>
+    </NMessageProvider>
+  </NConfigProvider>
 </template>
 
 <style scoped>
