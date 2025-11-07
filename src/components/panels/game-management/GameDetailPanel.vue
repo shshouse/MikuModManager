@@ -1367,6 +1367,26 @@ async function openModsFolder() {
   max-width: 1200px;
   width: calc(100% - 48px);
   margin: 0 auto 24px;
+  animation: card-slide-up 0.5s ease-out both;
+}
+
+@keyframes card-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-card:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+.content-card:nth-child(3) {
+  animation-delay: 0.7s;
 }
 
 /* Steam风格背景横幅 */
@@ -1379,6 +1399,18 @@ async function openModsFolder() {
   background-repeat: no-repeat;
   overflow: hidden;
   margin-bottom: var(--space-6);
+  animation: hero-fade-in 0.6s ease-out;
+}
+
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .hero-gradient {
@@ -1399,6 +1431,18 @@ async function openModsFolder() {
   right: 0;
   padding: var(--space-8) var(--space-6);
   z-index: 1;
+  animation: hero-content-slide-up 0.8s ease-out 0.2s both;
+}
+
+@keyframes hero-content-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hero-game-info {

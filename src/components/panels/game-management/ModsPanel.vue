@@ -602,6 +602,18 @@ onMounted(async () => {
   padding: 24px;
   border-bottom: 1px solid #e8e8e8;
   background: linear-gradient(to right, #fafafa, #ffffff);
+  animation: header-fade-in 0.4s ease-out;
+}
+
+@keyframes header-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .panel-header h2 {
@@ -624,6 +636,40 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
+}
+
+.games-grid > .n-card {
+  animation: game-card-fade-in 0.4s ease-out both;
+}
+
+.games-grid > .n-card:nth-child(1) { animation-delay: 0.05s; }
+.games-grid > .n-card:nth-child(2) { animation-delay: 0.1s; }
+.games-grid > .n-card:nth-child(3) { animation-delay: 0.15s; }
+.games-grid > .n-card:nth-child(4) { animation-delay: 0.2s; }
+.games-grid > .n-card:nth-child(5) { animation-delay: 0.25s; }
+.games-grid > .n-card:nth-child(6) { animation-delay: 0.3s; }
+.games-grid > .n-card:nth-child(7) { animation-delay: 0.35s; }
+.games-grid > .n-card:nth-child(8) { animation-delay: 0.4s; }
+.games-grid > .n-card:nth-child(n+9) { animation-delay: 0.45s; }
+
+@keyframes game-card-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.n-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.n-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .n-card:hover .delete-btn {

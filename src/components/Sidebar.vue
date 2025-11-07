@@ -56,6 +56,12 @@ watch(
   text-align: center;
   border-bottom: 1px solid #f0f0f0;
   background: linear-gradient(135deg, #EBF5FB 0%, #D6EAF8 100%);
+  transition: all 0.3s ease;
+}
+
+.sidebar-header:hover {
+  background: linear-gradient(135deg, #D6EAF8 0%, #AED6F1 100%);
+  box-shadow: 0 2px 8px rgba(93, 173, 226, 0.15);
 }
 
 .logo-image {
@@ -63,5 +69,12 @@ watch(
   height: auto;
   max-height: 60px;
   object-fit: contain;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.logo-image:hover {
+  transform: scale(1.05) rotate(2deg);
+  filter: drop-shadow(0 4px 8px rgba(93, 173, 226, 0.3));
 }
 </style>
