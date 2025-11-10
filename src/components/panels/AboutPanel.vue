@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { APP_VERSION } from '../../version'
 import { NCard, NButton, NSpace, NTag, NGrid, NGridItem } from 'naive-ui'
 
@@ -22,11 +23,16 @@ const links = [
   { name: 'MikuMod', url: 'https://www.mikumod.com' }
 ]
 
-function openLink(url: string) {
+const isOpening = ref(false)
+
+async function openLink(url: string) {
   try {
-    window.open(url, '_blank')
+    isOpening.value = true
+    await invoke('open_url_in_browser', { url })
   } catch (error) {
     console.error('Failed to open link:', error)
+  } finally {
+    isOpening.value = false
   }
 }
 </script>
@@ -92,7 +98,7 @@ function openLink(url: string) {
         <NCard size="large" title="相关链接" :bordered="true">
           <NGrid :x-gap="12" :y-gap="12" :cols="2">
             <NGridItem v-for="link in links" :key="link.name">
-              <NButton block @click="openLink(link.url)">
+              <NButton block :loading="isOpening" @click="openLink(link.url)">
                 {{ link.name }}
               </NButton>
             </NGridItem>

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { NCard, NButton, NSpace } from 'naive-ui'
 
-const websiteUrl = '未上线，开发中'
+const websiteUrl = 'https://www.mikumod.com/'
 const isOpening = ref(false)
 
 async function openInBrowser() {

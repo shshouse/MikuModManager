@@ -266,6 +266,10 @@ async function loadMods() {
         } else {
           const configContent = await invoke('read_file', { path: configPath }) as string
           config = JSON.parse(configContent) as ModConfig
+          
+          if (!config.id) {
+            config.id = folder
+          }
         }
         
         const allFiles = await invoke('get_all_files', { path: modPath }) as string[]
@@ -275,7 +279,7 @@ async function loadMods() {
         
         if (config.game) {
           const installedMods = installedModsMap.get(config.game)
-          config.installed = installedMods ? installedMods.has(folder) : false
+          config.installed = installedMods ? installedMods.has(config.id) : false
         }
         
         config.enabled = config.installed
