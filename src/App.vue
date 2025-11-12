@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import Sidebar from './components/Sidebar.vue'
-import ContentPanel from './components/ContentPanel.vue'
+import { ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+
+const Sidebar = defineAsyncComponent(() => import('./components/Sidebar.vue'))
+const ContentPanel = defineAsyncComponent(() => import('./components/ContentPanel.vue'))
 import { NMessageProvider, NConfigProvider, GlobalThemeOverrides } from 'naive-ui'
 
 const activeTab = ref('mods')

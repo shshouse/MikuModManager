@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
-import ModsPanel from './panels/game-management/ModsPanel.vue'
-import GameDetailPanel from './panels/game-management/GameDetailPanel.vue'
-import FindModsPanel from './panels/FindModsPanel.vue'
-import DownloadPanel from './panels/DownloadPanel.vue'
-import AboutPanel from './panels/AboutPanel.vue'
+import { ref, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+
+const ModsPanel = defineAsyncComponent(() => import('./panels/game-management/ModsPanel.vue'))
+const GameDetailPanel = defineAsyncComponent(() => import('./panels/game-management/GameDetailPanel.vue'))
+const FindModsPanel = defineAsyncComponent(() => import('./panels/FindModsPanel.vue'))
+const DownloadPanel = defineAsyncComponent(() => import('./panels/DownloadPanel.vue'))
+const AboutPanel = defineAsyncComponent(() => import('./panels/AboutPanel.vue'))
 
 interface Props {
   activeTab?: string
